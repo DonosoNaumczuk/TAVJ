@@ -25,7 +25,7 @@ public class Client : MonoBehaviour
         {
             var eventType = packet.buffer.GetBit();
             var id = packet.buffer.GetInt();
-            Debug.Log("Client[" + port + "]: Join response arrived! My id is " + id);
+            Logger.Log("Client[" + port + "]: Join response arrived! My id is " + id);
         }
     }
 
@@ -39,7 +39,7 @@ public class Client : MonoBehaviour
         var packet = GenerateJoinPacket();
         channel.Send(packet);
         packet.Free();
-        Debug.Log("Client[" + port + "]: Join request already sent to server");
+        Logger.Log("Client[" + port + "]: Join request already sent to server");
     }
 
     private Packet GenerateJoinPacket()

@@ -27,10 +27,13 @@ public class Server : MonoBehaviour
     private void ReceiveEvents()
     {
         var packet = channel.GetPacket();
-        if (packet != null)
+        Logger.Log("Server: Receiving events. I already have " + clients.Count + " clients", packet != null);
+        while (packet != null)
         {
             HandleEventPacket(packet);
             packet.Free();
+            packet = channel.GetPacket();
+            Logger.Log("Server: Events received. I have " + clients.Count + " clients now", packet == null);
         }
     }
 
