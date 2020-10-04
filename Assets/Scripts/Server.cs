@@ -39,7 +39,7 @@ public class Server : MonoBehaviour
 
     private void HandleEventPacket(Packet eventPacket)
     {
-        var eventType = eventPacket.buffer.GetBit();
+        var eventType = EventSerializer.DeserializeFromBuffer(eventPacket.buffer);
         if (eventType == Event.Join)
         {
             HandleJoinRequest(eventPacket);
@@ -64,9 +64,10 @@ public class Server : MonoBehaviour
     private Packet GenerateJoinedPacket(int id)
     {
         var packet = Packet.Obtain();
-        packet.buffer.PutBit(Event.Join);
-        packet.buffer.PutInt(id);
-        packet.buffer.Flush();
+        var buffer = packet.buffer;
+        EventSerializer.SerializeIntoBuffer(buffer, Event.Join);
+        buffer.PutInt(id);
+        buffer.Flush();
         return packet;
     }
 

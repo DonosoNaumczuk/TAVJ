@@ -23,7 +23,7 @@ public class Client : MonoBehaviour
         var packet = channel.GetPacket();
         if (packet != null)
         {
-            var eventType = packet.buffer.GetBit();
+            var eventType = EventSerializer.DeserializeFromBuffer(packet.buffer);
             var id = packet.buffer.GetInt();
             Logger.Log("Client[" + port + "]: Join response arrived! My id is " + id);
         }
@@ -45,7 +45,7 @@ public class Client : MonoBehaviour
     private Packet GenerateJoinPacket()
     {
         var packet = Packet.Obtain();
-        packet.buffer.PutBit(Event.Join);
+        EventSerializer.SerializeIntoBuffer(packet.buffer, Event.Join);
         packet.buffer.Flush();
         return packet;
     }
