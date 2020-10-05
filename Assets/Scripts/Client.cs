@@ -76,8 +76,9 @@ public class Client : MonoBehaviour
     
     private void HandleJoinBroadcast(Packet joinBroadcast)
     {
-        var joinedId = joinBroadcast.buffer.GetInt();
-        _entities.Add(joinedId, new Entity(joinedId, null));
+        var buffer = joinBroadcast.buffer;
+        var joinedId = buffer.GetInt();
+        CreateNewEntityFromBuffer(joinedId, buffer);
         Logger.Log("Client[" + port + "]: Client " + joinedId + " has joined!");
     }
 

@@ -85,7 +85,7 @@ public class Server : MonoBehaviour
         var packet = Packet.Obtain();
         var buffer = packet.buffer;
         EventSerializer.SerializeIntoBuffer(buffer, Event.JoinBroadcast);
-        buffer.PutInt(joinedClientId);
+        _clients[joinedClientId].SerializeIntoBuffer(buffer);
         buffer.Flush();
         foreach (var client in _clients.Where(client => client.Id != joinedClientId))
         {
