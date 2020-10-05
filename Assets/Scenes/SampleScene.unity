@@ -154,6 +154,7 @@ MonoBehaviour:
   serverIp: 127.0.0.1
   cubeEntityPrefab: {fileID: 712232584743427451, guid: fa75534faa25645ec9a657e4912964cc,
     type: 3}
+  jumpKey: 49
 --- !u!4 &98951265
 Transform:
   m_ObjectHideFlags: 0
@@ -293,6 +294,7 @@ MonoBehaviour:
   serverIp: 127.0.0.1
   cubeEntityPrefab: {fileID: 712232584743427451, guid: fa75534faa25645ec9a657e4912964cc,
     type: 3}
+  jumpKey: 50
 --- !u!4 &884221517
 Transform:
   m_ObjectHideFlags: 0
@@ -563,6 +565,7 @@ MonoBehaviour:
   serverIp: 127.0.0.1
   cubeEntityPrefab: {fileID: 712232584743427451, guid: fa75534faa25645ec9a657e4912964cc,
     type: 3}
+  jumpKey: 51
 --- !u!4 &1297714218
 Transform:
   m_ObjectHideFlags: 0
@@ -611,6 +614,7 @@ MonoBehaviour:
   serverIp: 127.0.0.1
   cubeEntityPrefab: {fileID: 712232584743427451, guid: fa75534faa25645ec9a657e4912964cc,
     type: 3}
+  jumpKey: 52
 --- !u!4 &1306827059
 Transform:
   m_ObjectHideFlags: 0
@@ -659,6 +663,7 @@ MonoBehaviour:
   serverIp: 127.0.0.1
   cubeEntityPrefab: {fileID: 712232584743427451, guid: fa75534faa25645ec9a657e4912964cc,
     type: 3}
+  jumpKey: 54
 --- !u!4 &1419864415
 Transform:
   m_ObjectHideFlags: 0
@@ -707,6 +712,7 @@ MonoBehaviour:
   serverIp: 127.0.0.1
   cubeEntityPrefab: {fileID: 712232584743427451, guid: fa75534faa25645ec9a657e4912964cc,
     type: 3}
+  jumpKey: 55
 --- !u!4 &1816248180
 Transform:
   m_ObjectHideFlags: 0
@@ -755,6 +761,7 @@ MonoBehaviour:
   serverIp: 127.0.0.1
   cubeEntityPrefab: {fileID: 712232584743427451, guid: fa75534faa25645ec9a657e4912964cc,
     type: 3}
+  jumpKey: 53
 --- !u!4 &2129439682
 Transform:
   m_ObjectHideFlags: 0

@@ -7,6 +7,7 @@ public class Client : MonoBehaviour
     public int serverPort;
     public string serverIp;
     public GameObject cubeEntityPrefab;
+    public KeyCode jumpKey;
 
     private Channel _channel;
     private int _id;
@@ -32,6 +33,11 @@ public class Client : MonoBehaviour
             packet.Free();
             packet = _channel.GetPacket();
         }
+
+        if (Input.GetKey(jumpKey))
+        {
+            //TODO: Send jump input to server
+        }
     }
     
     private void HandleEventPacket(Packet eventPacket)
@@ -52,6 +58,10 @@ public class Client : MonoBehaviour
     {
         _id = joinResponse.buffer.GetInt();
         Logger.Log("Client[" + port + "]: Join response arrived! My id is " + _id);
+        var gameObject = Instantiate(cubeEntityPrefab, Vector3.zero, Quaternion.identity);
+        var entity = new Entity(_id, gameObject);
+        entity.DeserializeFromBuffer(joinResponse.buffer);
+        _entities.Add(_id, entity);
     }
     
     private void HandleJoinBroadcast(Packet joinBroadcast)

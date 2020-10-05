@@ -7,18 +7,18 @@ public class Server : MonoBehaviour
     public int port;
     public GameObject cubeEntityPrefab;
 
-    private Channel channel;
-    private List<ClientInfo> clients;
+    private Channel _channel;
+    private List<ClientInfo> _clients;
 
     private void Awake()
     {
-        channel = new Channel(port);
-        clients = new List<ClientInfo>();
+        _channel = new Channel(port);
+        _clients = new List<ClientInfo>();
     }
 
     private void OnDestroy()
     {
-        channel.Disconnect();
+        _channel.Disconnect();
     }
 
     private void Update()
@@ -28,14 +28,14 @@ public class Server : MonoBehaviour
 
     private void ReceiveEvents()
     {
-        var packet = channel.GetPacket();
-        Logger.Log("Server: Receiving events. I already have " + clients.Count + " clients", packet != null);
+        var packet = _channel.GetPacket();
+        Logger.Log("Server: Receiving events. I already have " + _clients.Count + " clients", packet != null);
         while (packet != null)
         {
             HandleEventPacket(packet);
             packet.Free();
-            packet = channel.GetPacket();
-            Logger.Log("Server: Events received. I have " + clients.Count + " clients now", packet == null);
+            packet = _channel.GetPacket();
+            Logger.Log("Server: Events received. I have " + _clients.Count + " clients now", packet == null);
         }
     }
 
@@ -50,9 +50,10 @@ public class Server : MonoBehaviour
 
     private void HandleJoinRequest(Packet joinRequest)
     {
-        var entity = Instantiate(cubeEntityPrefab, new Vector3(0, Random.Range(1.0f, 10.0f), 0), Quaternion.identity);
-        var clientInfo = new ClientInfo(clients.Count, joinRequest.fromEndPoint, entity);
-        clients.Add(clientInfo);
+        var entityFirstPosition = new Vector3(0, Random.Range(1.0f, 10.0f), 0);
+        var entity = Instantiate(cubeEntityPrefab, entityFirstPosition, Quaternion.identity);
+        var clientInfo = new ClientInfo(_clients.Count, joinRequest.fromEndPoint, entity);
+        _clients.Add(clientInfo);
         SendJoinedResponse(clientInfo);
         BroadcastNewJoin(clientInfo.Id);
     }
@@ -60,7 +61,7 @@ public class Server : MonoBehaviour
     private void SendJoinedResponse(ClientInfo clientInfo)
     {
         var packet = GenerateJoinedPacket(clientInfo.Id);
-        channel.Send(packet, clientInfo.EndPoint);
+        _channel.Send(packet, clientInfo.EndPoint);
         packet.Free();
     }
 
@@ -69,7 +70,7 @@ public class Server : MonoBehaviour
         var packet = Packet.Obtain();
         var buffer = packet.buffer;
         EventSerializer.SerializeIntoBuffer(buffer, Event.Join);
-        buffer.PutInt(id);
+        _clients[id].SerializeIntoBuffer(buffer);
         buffer.Flush();
         return packet;
     }
@@ -81,9 +82,9 @@ public class Server : MonoBehaviour
         EventSerializer.SerializeIntoBuffer(buffer, Event.JoinBroadcast);
         buffer.PutInt(joinedClientId);
         buffer.Flush();
-        foreach (var client in clients.Where(client => client.Id != joinedClientId))
+        foreach (var client in _clients.Where(client => client.Id != joinedClientId))
         {
-            channel.Send(packet, client.EndPoint);
+            _channel.Send(packet, client.EndPoint);
         }
         packet.Free();
     }
