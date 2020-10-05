@@ -2,16 +2,16 @@ using System.Net;
 
 public class ClientInfo
 {
-    private int id;
-    private IPEndPoint endPoint;
+    private readonly int _id;
+    private readonly IPEndPoint _endPoint;
 
     public ClientInfo(int id, IPEndPoint endPoint)
     {
-        this.id = id;
-        this.endPoint = endPoint;
+        _id = id;
+        _endPoint = endPoint;
     }
 
-    public int Id => id;
+    public int Id => _id;
 
-    public IPEndPoint EndPoint => endPoint;
+    public IPEndPoint EndPoint => _endPoint;
 }

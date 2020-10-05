@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 public class Server : MonoBehaviour
@@ -73,6 +74,15 @@ public class Server : MonoBehaviour
 
     private void BroadcastNewJoin(int joinedClientId)
     {
-
+        var packet = Packet.Obtain();
+        var buffer = packet.buffer;
+        EventSerializer.SerializeIntoBuffer(buffer, Event.JoinBroadcast);
+        buffer.PutInt(joinedClientId);
+        buffer.Flush();
+        foreach (var client in clients.Where(client => client.Id != joinedClientId))
+        {
+            channel.Send(packet, client.EndPoint);
+        }
+        packet.Free();
     }
 }
