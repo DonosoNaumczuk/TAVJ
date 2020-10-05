@@ -56,12 +56,22 @@ public class Client : MonoBehaviour
 
     private void HandleJoinResponse(Packet joinResponse)
     {
-        _id = joinResponse.buffer.GetInt();
+        var buffer = joinResponse.buffer;
+        _id = buffer.GetInt();
         Logger.Log("Client[" + port + "]: Join response arrived! My id is " + _id);
+        CreateNewEntityFromBuffer(_id, buffer);
+        for (var clientsToAdd = buffer.GetInt(); clientsToAdd > 0; clientsToAdd--)
+        {
+            CreateNewEntityFromBuffer(buffer.GetInt(), buffer);
+        }
+    }
+
+    private void CreateNewEntityFromBuffer(int id, BitBuffer buffer)
+    {
         var gameObject = Instantiate(cubeEntityPrefab, Vector3.zero, Quaternion.identity);
-        var entity = new Entity(_id, gameObject);
-        entity.DeserializeFromBuffer(joinResponse.buffer);
-        _entities.Add(_id, entity);
+        var entity = new Entity(id, gameObject);
+        entity.DeserializeFromBuffer(buffer);
+        _entities.Add(id, entity);
     }
     
     private void HandleJoinBroadcast(Packet joinBroadcast)

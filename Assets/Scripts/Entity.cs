@@ -2,8 +2,8 @@ using UnityEngine;
 
 public class Entity
 {
-    private readonly GameObject _gameObject;
     private readonly int _id;
+    private readonly GameObject _gameObject;
 
     public Entity(int id, GameObject gameObject)
     {
@@ -11,10 +11,10 @@ public class Entity
         _gameObject = gameObject;
     }
 
+    public int Id => _id;
+
     public GameObject GameObject => _gameObject;
 
-    public int Id => _id;
-    
     /**
      * TODO: Remove when snapshot and its interpolation is implemented :)
      */

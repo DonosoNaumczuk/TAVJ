@@ -71,6 +71,11 @@ public class Server : MonoBehaviour
         var buffer = packet.buffer;
         EventSerializer.SerializeIntoBuffer(buffer, Event.Join);
         _clients[id].SerializeIntoBuffer(buffer);
+        buffer.PutInt(_clients.Count - 1);
+        foreach (var clientInfo in _clients.Where(clientInfo => clientInfo.Id != id))
+        {
+            clientInfo.SerializeIntoBuffer(buffer);
+        }
         buffer.Flush();
         return packet;
     }
