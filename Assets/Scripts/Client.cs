@@ -6,6 +6,7 @@ public class Client : MonoBehaviour
     public int port;
     public int serverPort;
     public string serverIp;
+    public GameObject cubeEntityPrefab;
 
     private Channel _channel;
     private int _id;

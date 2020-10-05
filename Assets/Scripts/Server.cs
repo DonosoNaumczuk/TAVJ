@@ -5,6 +5,7 @@ using UnityEngine;
 public class Server : MonoBehaviour
 {
     public int port;
+    public GameObject cubeEntityPrefab;
 
     private Channel channel;
     private List<ClientInfo> clients;
@@ -49,7 +50,8 @@ public class Server : MonoBehaviour
 
     private void HandleJoinRequest(Packet joinRequest)
     {
-        var clientInfo = new ClientInfo(clients.Count, joinRequest.fromEndPoint);
+        var entity = Instantiate(cubeEntityPrefab, new Vector3(0, Random.Range(1.0f, 10.0f), 0), Quaternion.identity);
+        var clientInfo = new ClientInfo(clients.Count, joinRequest.fromEndPoint, entity);
         clients.Add(clientInfo);
         SendJoinedResponse(clientInfo);
         BroadcastNewJoin(clientInfo.Id);
