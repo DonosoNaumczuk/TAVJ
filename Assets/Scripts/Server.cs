@@ -4,6 +4,8 @@ using UnityEngine;
 
 public class Server : MonoBehaviour
 {
+    private const float JumpForceModule = 4.0f;
+    
     public int port;
     public GameObject cubeEntityPrefab;
 
@@ -29,22 +31,29 @@ public class Server : MonoBehaviour
     private void ReceiveEvents()
     {
         var packet = _channel.GetPacket();
-        Logger.Log("Server: Receiving events. I already have " + _clients.Count + " clients", packet != null);
+        Logger.Log("Server: Receiving events", packet != null);
         while (packet != null)
         {
             HandleEventPacket(packet);
             packet.Free();
             packet = _channel.GetPacket();
-            Logger.Log("Server: Events received. I have " + _clients.Count + " clients now", packet == null);
+            Logger.Log("Server: Events received and processed", packet == null);
         }
     }
 
     private void HandleEventPacket(Packet eventPacket)
     {
         var eventType = EventSerializer.DeserializeFromBuffer(eventPacket.buffer);
-        if (eventType == Event.Join)
+        switch (eventType)
         {
-            HandleJoinRequest(eventPacket);
+            case Event.Join:
+                HandleJoinRequest(eventPacket);
+                Logger.Log("Server: Join event handled. I have " + _clients.Count + " clients now");
+                break;
+            case Event.Input:
+                HandleInputEvent(eventPacket);
+                Logger.Log("Server: Input event handled");
+                break;
         }
     }
 
@@ -56,6 +65,13 @@ public class Server : MonoBehaviour
         _clients.Add(clientInfo);
         SendJoinedResponse(clientInfo);
         BroadcastNewJoin(clientInfo.Id);
+    }
+    
+    private void HandleInputEvent(Packet inputPacket)
+    {
+        var id = inputPacket.buffer.GetInt();
+        _clients[id].Entity.GetComponent<Rigidbody>()
+            .AddForceAtPosition(JumpForceModule * Vector3.up, Vector3.zero, ForceMode.Impulse);
     }
 
     private void SendJoinedResponse(ClientInfo clientInfo)

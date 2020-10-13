@@ -36,8 +36,26 @@ public class Client : MonoBehaviour
 
         if (Input.GetKey(jumpKey))
         {
-            //TODO: Send jump input to server
+            SendInputEvent();
         }
+    }
+
+    private void SendInputEvent()
+    {
+        var packet = GenerateInputPacket();
+        _channel.Send(packet);
+        packet.Free();
+        Logger.Log("Client[" + port + "]: Input already sent to server");
+    }
+
+    private Packet GenerateInputPacket()
+    {
+        //TODO: now we assume input is jump, then we must specify the input type (jump, shoot, movement, etc.)
+        var packet = Packet.Obtain();
+        EventSerializer.SerializeIntoBuffer(packet.buffer, Event.Input);
+        packet.buffer.PutInt(_id); //TODO: this doesn't look too safe as auth/id system...
+        packet.buffer.Flush();
+        return packet;
     }
     
     private void HandleEventPacket(Packet eventPacket)
