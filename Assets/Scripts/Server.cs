@@ -4,18 +4,22 @@ using UnityEngine;
 
 public class Server : MonoBehaviour
 {
-    private const float JumpForceModule = 4.0f;
+    private const float JumpForceModule = 1.5f;
+    private const int SnapshotsPerSecond = 3;
+    private const float SecondsToSendNextSnapshot = 1f / SnapshotsPerSecond;
     
     public int port;
     public GameObject cubeEntityPrefab;
 
     private Channel _channel;
     private List<ClientInfo> _clients;
+    private float _secondsSinceLastSnapshotSent;
 
     private void Awake()
     {
         _channel = new Channel(port);
         _clients = new List<ClientInfo>();
+        _secondsSinceLastSnapshotSent = 0f;
     }
 
     private void OnDestroy()
@@ -26,6 +30,38 @@ public class Server : MonoBehaviour
     private void Update()
     {
         ReceiveEvents();
+        _secondsSinceLastSnapshotSent += Time.deltaTime;
+        if (_secondsSinceLastSnapshotSent >= SecondsToSendNextSnapshot)
+        {
+            SendSnapshots();
+            _secondsSinceLastSnapshotSent = 0f;
+        }
+    }
+
+    private void SendSnapshots()
+    {
+        var snapshotPacket = GenerateSnapshotPacket();
+        foreach (var client in _clients)
+        {
+            _channel.Send(snapshotPacket, client.EndPoint);
+        }
+        snapshotPacket.Free();
+    }
+
+    private Packet GenerateSnapshotPacket()
+    {
+        var packet = Packet.Obtain();
+        var buffer = packet.buffer;
+        var clientsThatChanged = _clients.Where(client => client.Entity.transform.hasChanged).ToList();
+        EventSerializer.SerializeIntoBuffer(buffer, Event.Snapshot);
+        buffer.PutInt(clientsThatChanged.Count);
+        foreach (var client in clientsThatChanged)
+        {
+            client.SerializeIntoBuffer(buffer);
+            client.Entity.transform.hasChanged = false;
+        }
+        buffer.Flush();
+        return packet;
     }
 
     private void ReceiveEvents()
