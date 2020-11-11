@@ -69,6 +69,9 @@ public class Client : MonoBehaviour
             case Event.JoinBroadcast:
                 HandleJoinBroadcast(eventPacket);
                 break;
+            case Event.Snapshot:
+                HandleSnapshot(eventPacket);
+                break;
         }
     }
 
@@ -119,5 +122,18 @@ public class Client : MonoBehaviour
         EventSerializer.SerializeIntoBuffer(packet.buffer, Event.Join);
         packet.buffer.Flush();
         return packet;
+    }
+
+    private void HandleSnapshot(Packet snapshotPacket)
+    {
+        var buffer = snapshotPacket.buffer;
+        for (var clientsToProcess = buffer.GetInt(); clientsToProcess > 0; clientsToProcess--)
+        {
+            var id = buffer.GetInt();
+            if (_entities.ContainsKey(id)) //TODO: if not? consumes buffer ignoring its transform?
+            {
+                _entities[id].DeserializeFromBuffer(buffer);
+            }
+        }
     }
 }
