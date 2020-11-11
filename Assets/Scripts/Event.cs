@@ -4,7 +4,8 @@ public enum Event
 {
     Join,
     JoinBroadcast,
-    Input
+    Input,
+    Snapshot
 }
 
 public static class EventSerializer
