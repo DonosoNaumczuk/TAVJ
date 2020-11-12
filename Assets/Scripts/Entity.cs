@@ -15,9 +15,6 @@ public class Entity
 
     public GameObject GameObject => _gameObject;
 
-    /**
-     * TODO: Remove when snapshot and its interpolation is implemented :)
-     */
     public void DeserializeFromBuffer(BitBuffer buffer)
     {
         var transform = _gameObject.transform;

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 public class Client : MonoBehaviour
@@ -12,11 +13,15 @@ public class Client : MonoBehaviour
     private Channel _channel;
     private int _id;
     private Dictionary<int, Entity> _entities;
+    private Queue<Snapshot> _snapshotBuffer;
+    
+    private const int InterpolationBufferSize = 3;
 
     private void Awake()
     {
         _channel = new Channel(serverIp, port, serverPort);
         _entities = new Dictionary<int, Entity>();
+        _snapshotBuffer = new Queue<Snapshot>();
     }
 
     void Start()
@@ -37,6 +42,11 @@ public class Client : MonoBehaviour
         if (Input.GetKey(jumpKey))
         {
             SendInputEvent();
+        }
+
+        if (_snapshotBuffer.Count >= InterpolationBufferSize)
+        {
+            InterpolateSnapshots();
         }
     }
 
@@ -89,8 +99,8 @@ public class Client : MonoBehaviour
 
     private void CreateNewEntityFromBuffer(int id, BitBuffer buffer)
     {
-        var gameObject = Instantiate(cubeEntityPrefab, Vector3.zero, Quaternion.identity);
-        var entity = new Entity(id, gameObject);
+        var entityGameObject = Instantiate(cubeEntityPrefab, Vector3.zero, Quaternion.identity);
+        var entity = new Entity(id, entityGameObject);
         entity.DeserializeFromBuffer(buffer);
         _entities.Add(id, entity);
     }
@@ -126,14 +136,17 @@ public class Client : MonoBehaviour
 
     private void HandleSnapshot(Packet snapshotPacket)
     {
-        var buffer = snapshotPacket.buffer;
-        for (var clientsToProcess = buffer.GetInt(); clientsToProcess > 0; clientsToProcess--)
+        _snapshotBuffer.Enqueue(new Snapshot(snapshotPacket.buffer));
+    }
+    
+    private void InterpolateSnapshots()
+    {
+        var snapshot = _snapshotBuffer.Dequeue();
+        foreach (var id in snapshot.Ids.Where(key => _entities.ContainsKey(key)))
         {
-            var id = buffer.GetInt();
-            if (_entities.ContainsKey(id)) //TODO: if not? consumes buffer ignoring its transform?
-            {
-                _entities[id].DeserializeFromBuffer(buffer);
-            }
+            var positionRotationTuple = snapshot.GetPositionRotationTuple(id);
+            _entities[id].GameObject.transform.position = positionRotationTuple.Item1;
+            _entities[id].GameObject.transform.rotation = positionRotationTuple.Item2;
         }
     }
 }

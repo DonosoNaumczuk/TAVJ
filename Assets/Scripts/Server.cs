@@ -5,7 +5,7 @@ using UnityEngine;
 public class Server : MonoBehaviour
 {
     private const float JumpForceModule = 1.5f;
-    private const int SnapshotsPerSecond = 3;
+    private const int SnapshotsPerSecond = 10;
     private const float SecondsToSendNextSnapshot = 1f / SnapshotsPerSecond;
     
     public int port;
