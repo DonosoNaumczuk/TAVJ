@@ -14,7 +14,11 @@ public class Client : MonoBehaviour
     private int _id;
     private Dictionary<int, Entity> _entities;
     private Queue<Snapshot> _snapshotBuffer;
+    private Snapshot _currentSnapshot;
+    private float _timeFromLastSnapshotInterpolation;
     
+    private const int SnapshotsPerSecond = 10;
+    private const float SecondsToReceiveNextSnapshot = 1f / SnapshotsPerSecond;
     private const int InterpolationBufferSize = 3;
 
     private void Awake()
@@ -22,6 +26,8 @@ public class Client : MonoBehaviour
         _channel = new Channel(serverIp, port, serverPort);
         _entities = new Dictionary<int, Entity>();
         _snapshotBuffer = new Queue<Snapshot>();
+        _currentSnapshot = null;
+        _timeFromLastSnapshotInterpolation = 0f;
     }
 
     void Start()
@@ -45,6 +51,16 @@ public class Client : MonoBehaviour
         }
 
         if (_snapshotBuffer.Count >= InterpolationBufferSize)
+        {
+            _currentSnapshot = _snapshotBuffer.Dequeue();
+            _timeFromLastSnapshotInterpolation = 0f;
+            foreach (var entity in _entities.Values)
+            {
+                entity.RefreshLastSnapshotTransform();
+            }
+        }
+
+        if (_currentSnapshot != null)
         {
             InterpolateSnapshots();
         }
@@ -141,12 +157,16 @@ public class Client : MonoBehaviour
     
     private void InterpolateSnapshots()
     {
-        var snapshot = _snapshotBuffer.Dequeue();
-        foreach (var id in snapshot.Ids.Where(key => _entities.ContainsKey(key)))
+        _timeFromLastSnapshotInterpolation += Time.deltaTime;
+        var time = Mathf.Clamp01(_timeFromLastSnapshotInterpolation / SecondsToReceiveNextSnapshot);
+        foreach (var id in _currentSnapshot.Ids.Where(key => _entities.ContainsKey(key)))
         {
-            var positionRotationTuple = snapshot.GetPositionRotationTuple(id);
-            _entities[id].GameObject.transform.position = positionRotationTuple.Item1;
-            _entities[id].GameObject.transform.rotation = positionRotationTuple.Item2;
+            var entity = _entities[id];
+            var positionRotationTuple = _currentSnapshot.GetPositionRotationTuple(id);
+            entity.GameObject.transform.position = Vector3.Lerp(entity.LastSnapshotTransform.position,
+                positionRotationTuple.Item1, time);
+            entity.GameObject.transform.rotation = Quaternion.Lerp(entity.LastSnapshotTransform.rotation,
+                positionRotationTuple.Item2, time);
         }
     }
 }

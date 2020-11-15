@@ -1,27 +1,25 @@
-
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
 public class Snapshot
 {
-    private readonly Dictionary<int, Tuple<Vector3, Quaternion>> _transforms;
+    private readonly Dictionary<int, (Vector3, Quaternion)> _transforms;
 
     public Snapshot(BitBuffer buffer)
     {
         _transforms = DeserializeFromBuffer(buffer);
     }
     
-    private Dictionary<int, Tuple<Vector3, Quaternion>> DeserializeFromBuffer(BitBuffer buffer)
+    private Dictionary<int, (Vector3, Quaternion)> DeserializeFromBuffer(BitBuffer buffer)
     {
-        var transforms = new Dictionary<int, Tuple<Vector3, Quaternion>>();
+        var transforms = new Dictionary<int, (Vector3, Quaternion)>();
         for (var clientsToProcess = buffer.GetInt(); clientsToProcess > 0; clientsToProcess--)
         {
             var id = buffer.GetInt();
             var position = new Vector3(buffer.GetFloat(), buffer.GetFloat(), buffer.GetFloat());
             var rotation = new Quaternion(buffer.GetFloat(), buffer.GetFloat(), buffer.GetFloat(), buffer.GetFloat());
-            transforms[id] = new Tuple<Vector3, Quaternion>(position, rotation);
+            transforms[id] = (position, rotation);
         }
         return transforms;
     }
@@ -33,7 +31,7 @@ public class Snapshot
         return _transforms.ContainsKey(id);
     }
 
-    public Tuple<Vector3, Quaternion> GetPositionRotationTuple(int id)
+    public (Vector3, Quaternion) GetPositionRotationTuple(int id)
     {
         return _transforms[id];
     }
