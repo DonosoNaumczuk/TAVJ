@@ -116,6 +116,7 @@ public class Client : MonoBehaviour
     private void CreateNewEntityFromBuffer(int id, BitBuffer buffer)
     {
         var entityGameObject = Instantiate(cubeEntityPrefab, Vector3.zero, Quaternion.identity);
+        entityGameObject.name = "Player_" + id + "@Client_" + _id;
         var entity = new Entity(id, entityGameObject);
         entity.DeserializeFromBuffer(buffer);
         _entities.Add(id, entity);

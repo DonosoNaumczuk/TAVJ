@@ -97,6 +97,7 @@ public class Server : MonoBehaviour
     {
         var entityFirstPosition = new Vector3(0, Random.Range(1.0f, 10.0f), 0);
         var entity = Instantiate(cubeEntityPrefab, entityFirstPosition, Quaternion.identity);
+        entity.name = "Player_" + _clients.Count + "@Server";
         var clientInfo = new ClientInfo(_clients.Count, joinRequest.fromEndPoint, entity);
         _clients.Add(clientInfo);
         SendJoinedResponse(clientInfo);
