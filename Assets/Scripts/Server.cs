@@ -9,7 +9,7 @@ public class Server : MonoBehaviour
     private const float SecondsToSendNextSnapshot = 1f / SnapshotsPerSecond;
     
     public int port;
-    public GameObject cubeEntityPrefab;
+    public GameObject entityPrefab;
 
     private Channel _channel;
     private List<ClientInfo> _clients;
@@ -95,8 +95,7 @@ public class Server : MonoBehaviour
 
     private void HandleJoinRequest(Packet joinRequest)
     {
-        var entityFirstPosition = new Vector3(0, Random.Range(1.0f, 10.0f), 0);
-        var entity = Instantiate(cubeEntityPrefab, entityFirstPosition, Quaternion.identity);
+        var entity = Instantiate(entityPrefab, Vector3.zero, Quaternion.identity);
         entity.name = "Player_" + _clients.Count + "@Server";
         var clientInfo = new ClientInfo(_clients.Count, joinRequest.fromEndPoint, entity);
         _clients.Add(clientInfo);

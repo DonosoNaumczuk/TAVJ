@@ -684,7 +684,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 425852108}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 24, y: 2, z: -3}
+  m_LocalPosition: {x: 24, y: 1.8, z: -3}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 482408246}
@@ -1824,7 +1824,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   port: 9000
-  cubeEntityPrefab: {fileID: 7406115796184491894, guid: d933e43b5fa6647d19c914b3d952d4e3,
+  entityPrefab: {fileID: 7406115796184491894, guid: d933e43b5fa6647d19c914b3d952d4e3,
     type: 3}
 --- !u!4 &1059444831
 Transform:
