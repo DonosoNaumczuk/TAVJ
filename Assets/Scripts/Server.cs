@@ -4,7 +4,6 @@ using UnityEngine;
 
 public class Server : MonoBehaviour
 {
-    private const float JumpForceModule = 1.5f;
     private const int SnapshotsPerSecond = 10;
     private const float SecondsToSendNextSnapshot = 1f / SnapshotsPerSecond;
     
@@ -30,6 +29,9 @@ public class Server : MonoBehaviour
     private void Update()
     {
         ReceiveEvents();
+        
+        HandleClientMovement();
+        
         _secondsSinceLastSnapshotSent += Time.deltaTime;
         if (_secondsSinceLastSnapshotSent >= SecondsToSendNextSnapshot)
         {
@@ -95,7 +97,7 @@ public class Server : MonoBehaviour
 
     private void HandleJoinRequest(Packet joinRequest)
     {
-        var entity = Instantiate(entityPrefab, Vector3.zero, Quaternion.identity);
+        var entity = Instantiate(entityPrefab, Vector3.up, Quaternion.identity);
         entity.name = "Player_" + _clients.Count + "@Server";
         var clientInfo = new ClientInfo(_clients.Count, joinRequest.fromEndPoint, entity);
         _clients.Add(clientInfo);
@@ -106,8 +108,69 @@ public class Server : MonoBehaviour
     private void HandleInputEvent(Packet inputPacket)
     {
         var id = inputPacket.buffer.GetInt();
-        _clients[id].Entity.GetComponent<Rigidbody>()
-            .AddForceAtPosition(JumpForceModule * Vector3.up, Vector3.zero, ForceMode.Impulse);
+        var input = new PlayerInput(inputPacket.buffer); 
+        _clients[id].UpdatePlayerInput(input);
+    }
+
+    private void HandleClientMovement()
+    {
+        foreach (var client in _clients)
+        {
+            var movement = Vector3.zero;
+            var rotation = Vector3.zero;
+            var animator = client.Entity.GetComponent<Animator>();
+            
+            if (client.PlayerInput.IsPressingForwardKey)
+            {
+                movement = client.Entity.transform.forward.normalized * 0.1f;
+                if (!animator.GetBool("WalkingForward"))
+                {
+                    animator.SetBool("WalkingForward", true);
+                    animator.SetBool("WalkingBackward", false);
+                }
+            }
+            else if (client.PlayerInput.IsPressingBackwardsKey)
+            {
+                movement = client.Entity.transform.forward.normalized * -0.1f;
+                if (!animator.GetBool("WalkingBackward"))
+                {
+                    animator.SetBool("WalkingBackward", true);
+                    animator.SetBool("WalkingForward", false);
+                }
+            }
+            else
+            {
+                animator.SetBool("WalkingForward", false);
+                animator.SetBool("WalkingBackward", false);
+            }
+            
+            if (client.PlayerInput.IsPressingLeftKey)
+            {
+                rotation = Vector3.down * 5f;
+                if (!animator.GetBool("RotatingLeft"))
+                {
+                    animator.SetBool("RotatingLeft", true);
+                    animator.SetBool("RotatingRight", false);
+                }
+            }
+            else if (client.PlayerInput.IsPressingRightKey)
+            {
+                rotation = Vector3.up * 5f;
+                if (!animator.GetBool("RotatingRight"))
+                {
+                    animator.SetBool("RotatingRight", true);
+                    animator.SetBool("RotatingLeft", false);
+                }
+            }
+            else
+            {
+                animator.SetBool("RotatingLeft", false);
+                animator.SetBool("RotatingRight", false);
+            }
+            
+            client.Entity.GetComponent<CharacterController>().Move(movement + Physics.gravity);
+            client.Entity.transform.Rotate(rotation);
+        }
     }
 
     private void SendJoinedResponse(ClientInfo clientInfo)

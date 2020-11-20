@@ -7,8 +7,13 @@ public class Client : MonoBehaviour
     public int port;
     public int serverPort;
     public string serverIp;
-    public GameObject cubeEntityPrefab;
-    public KeyCode jumpKey;
+    public GameObject entityPrefab;
+    public KeyCode forwardKey;
+    public KeyCode backwardsKey;
+    public KeyCode leftKey;
+    public KeyCode rightKey;
+    public KeyCode shootKey;
+    private PlayerInput _playerInput;
 
     private Channel _channel;
     private int _id;
@@ -28,6 +33,7 @@ public class Client : MonoBehaviour
         _snapshotBuffer = new Queue<Snapshot>();
         _currentSnapshot = null;
         _timeFromLastSnapshotInterpolation = 0f;
+        _playerInput = new PlayerInput(forwardKey, backwardsKey, leftKey, rightKey, shootKey);
     }
 
     void Start()
@@ -45,7 +51,8 @@ public class Client : MonoBehaviour
             packet = _channel.GetPacket();
         }
 
-        if (Input.GetKey(jumpKey))
+        _playerInput.Read();
+        if (_playerInput.HasChanged)
         {
             SendInputEvent();
         }
@@ -76,10 +83,10 @@ public class Client : MonoBehaviour
 
     private Packet GenerateInputPacket()
     {
-        //TODO: now we assume input is jump, then we must specify the input type (jump, shoot, movement, etc.)
         var packet = Packet.Obtain();
         EventSerializer.SerializeIntoBuffer(packet.buffer, Event.Input);
-        packet.buffer.PutInt(_id); //TODO: this doesn't look too safe as auth/id system...
+        packet.buffer.PutInt(_id);
+        _playerInput.SerializeIntoBuffer(packet.buffer);
         packet.buffer.Flush();
         return packet;
     }
@@ -115,7 +122,7 @@ public class Client : MonoBehaviour
 
     private void CreateNewEntityFromBuffer(int id, BitBuffer buffer)
     {
-        var entityGameObject = Instantiate(cubeEntityPrefab, Vector3.zero, Quaternion.identity);
+        var entityGameObject = Instantiate(entityPrefab, Vector3.up, Quaternion.identity);
         entityGameObject.name = "Player_" + id + "@Client_" + _id;
         var entity = new Entity(id, entityGameObject);
         entity.DeserializeFromBuffer(buffer);

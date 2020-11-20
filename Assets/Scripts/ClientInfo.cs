@@ -6,12 +6,15 @@ public class ClientInfo
     private readonly int _id;
     private readonly IPEndPoint _endPoint;
     private readonly GameObject _entity;
+    
+    private PlayerInput _playerInput;
 
     public ClientInfo(int id, IPEndPoint endPoint, GameObject entity)
     {
         _id = id;
         _endPoint = endPoint;
         _entity = entity;
+        _playerInput = new PlayerInput();
     }
 
     public int Id => _id;
@@ -19,6 +22,8 @@ public class ClientInfo
     public IPEndPoint EndPoint => _endPoint;
 
     public GameObject Entity => _entity;
+    
+    public PlayerInput PlayerInput => _playerInput;
 
     public void SerializeIntoBuffer(BitBuffer buffer)
     {
@@ -33,5 +38,10 @@ public class ClientInfo
         buffer.PutFloat(rotation.y);
         buffer.PutFloat(rotation.z);
         buffer.PutFloat(rotation.w);
+    }
+    
+    public void UpdatePlayerInput(PlayerInput playerInput)
+    {
+        _playerInput = playerInput;
     }
 }
