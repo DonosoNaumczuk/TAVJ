@@ -1,7 +1,6 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-
-public interface GenericPoolableObject {
-	void Reset();
+﻿namespace Networking
+{
+	public interface GenericPoolableObject {
+		void Reset();
+	}
 }

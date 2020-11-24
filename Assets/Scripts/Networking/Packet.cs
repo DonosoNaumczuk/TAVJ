@@ -1,34 +1,34 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-using System.IO;
+﻿using System.IO;
 using System.Net;
 
-public class Packet : GenericPoolableObject {
+namespace Networking
+{
+	public class Packet : GenericPoolableObject {
 
-	private static GenericPool<Packet> pool = new GenericPool<Packet>();
-	private static System.Object poolLock = new System.Object();
+		private static readonly GenericPool<Packet> Pool = new GenericPool<Packet>();
+		private static readonly System.Object PoolLock = new System.Object();
 
-	public const int BUFFER_CAPACITY = 1024 * 1024;
+		private const int BufferCapacity = 1024 * 1024;
 
-	public BitBuffer buffer = new BitBuffer(new MemoryStream(BUFFER_CAPACITY));
-	public IPEndPoint fromEndPoint;
+		public readonly BitBuffer Buffer = new BitBuffer(new MemoryStream(BufferCapacity));
+		public IPEndPoint FromEndPoint;
 
-	public static Packet Obtain() {
-		Packet packet = null;
-		lock (poolLock) {
-			packet = pool.Obtain();
+		public static Packet Obtain() {
+			Packet packet = null;
+			lock (PoolLock) {
+				packet = Pool.Obtain();
+			}
+			return packet;
 		}
-		return packet;
-	}
 
-	public void Reset() {
-		buffer.Clear();
-	}
+		public void Reset() {
+			Buffer.Clear();
+		}
 
-	public void Free() {
-		lock (poolLock) {
-			pool.Free(this);
+		public void Free() {
+			lock (PoolLock) {
+				Pool.Free(this);
+			}
 		}
 	}
 }
