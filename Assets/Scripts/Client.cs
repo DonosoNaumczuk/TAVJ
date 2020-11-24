@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -50,13 +51,14 @@ public class Client : MonoBehaviour
             packet.Free();
             packet = _channel.GetPacket();
         }
+    }
 
+    private void FixedUpdate()
+    {
         _playerInput.Read();
-        if (_playerInput.HasChanged)
-        {
-            SendInputEvent();
-        }
-
+        SendInputEvent();
+        HandleInputThroughPrediction();
+        
         if (_snapshotBuffer.Count >= InterpolationBufferSize)
         {
             _currentSnapshot = _snapshotBuffer.Dequeue();
@@ -66,7 +68,7 @@ public class Client : MonoBehaviour
                 entity.RefreshLastSnapshotTransform();
             }
         }
-
+        
         if (_currentSnapshot != null)
         {
             InterpolateSnapshots();
@@ -176,5 +178,33 @@ public class Client : MonoBehaviour
             entity.GameObject.transform.rotation = Quaternion.Lerp(entity.LastSnapshotTransform.rotation,
                 positionRotationTuple.Item2, time);
         }
+    }
+
+    private void HandleInputThroughPrediction()
+    {
+        var client = _entities[_id];
+        var movement = Vector3.zero;
+        var rotation = Vector3.zero;
+        
+        if (_playerInput.IsPressingForwardKey)
+        {
+            movement = client.GameObject.transform.forward.normalized * 0.1f;
+        }
+        else if (_playerInput.IsPressingBackwardsKey)
+        { 
+            movement = client.GameObject.transform.forward.normalized * -0.1f;
+        }
+
+        if (_playerInput.IsPressingLeftKey)
+        {
+            rotation = Vector3.down * 5f;
+        }
+        else if (_playerInput.IsPressingRightKey)
+        {
+            rotation = Vector3.up * 5f;
+        }
+
+        client.GameObject.GetComponent<CharacterController>().Move(movement + Physics.gravity);
+        client.GameObject.transform.Rotate(rotation);
     }
 }
