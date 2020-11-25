@@ -1,7 +1,7 @@
 ﻿using System.IO;
 using System.Net;
 
-namespace Networking
+namespace Commons.Networking
 {
 	public class Packet : GenericPoolableObject {
 

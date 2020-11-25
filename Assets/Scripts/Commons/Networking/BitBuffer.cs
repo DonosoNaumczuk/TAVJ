@@ -3,7 +3,7 @@ using System.IO;
 using System.Text;
 using UnityEngine;
 
-namespace Networking
+namespace Commons.Networking
 {
 	public class BitBuffer {
 

@@ -1,5 +1,5 @@
 using System.Net;
-using Networking;
+using Commons.Networking;
 using UnityEngine;
 
 namespace Server
@@ -30,7 +30,7 @@ namespace Server
         public void SerializeIntoBuffer(BitBuffer buffer)
         {
             buffer.PutInt(_id);
-            buffer.PutInt(_clientInput.LastProcessedInput);
+            buffer.PutInt(_clientInput.LastInputIdProcessed);
             var transform = _entity.transform;
             var position = transform.position;
             buffer.PutFloat(position.x);

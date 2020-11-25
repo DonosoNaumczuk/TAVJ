@@ -1,7 +1,12 @@
 using System;
 
-namespace Networking
+namespace Commons.Networking
 {
+    public static class Constants
+    {
+        public const int PacketsPerSecond = 60;
+    }
+    
     public enum Event
     {
         Join,

@@ -1,8 +1,9 @@
 using System.Collections.Generic;
 using System.Linq;
-using Networking;
+using Commons.Game;
+using Commons.Networking;
 using UnityEngine;
-using Event = Networking.Event;
+using Event = Commons.Networking.Event;
 
 namespace Client
 {
@@ -12,25 +13,25 @@ namespace Client
         public int serverPort;
         public string serverIp;
         public GameObject playerPrefab;
+        public GameObject conciliationObject;
         public KeyCode forwardKey;
         public KeyCode backwardsKey;
         public KeyCode leftKey;
         public KeyCode rightKey;
         public KeyCode shootKey;
-        private PlayerInput _playerInput;
 
         private Channel _channel;
         private int _id;
+        private bool _isConnected;
         private Dictionary<int, Player> _players;
         private Queue<Snapshot> _snapshotBuffer;
         private Snapshot _currentSnapshot;
         private float _timeFromLastSnapshotInterpolation;
+        private PlayerInput _playerInput;
 
-        private const int SnapshotsPerSecond = 10;
+        private const int SnapshotsPerSecond = Constants.PacketsPerSecond;
         private const float SecondsToReceiveNextSnapshot = 1f / SnapshotsPerSecond;
         private const int InterpolationBufferSize = 3;
-
-        private bool _isConnected;
 
         private void Awake()
         {
@@ -69,8 +70,12 @@ namespace Client
                     SendInputEvent();
                 }
 
-                HandleInputThroughPrediction();
+                if (_playerInput.CurrentInput.IsPressingSomething())
+                {
+                    HandleInputThroughPrediction();
+                }
 
+                _timeFromLastSnapshotInterpolation += Time.deltaTime;
                 if (_snapshotBuffer.Count >= InterpolationBufferSize)
                 {
                     _currentSnapshot = _snapshotBuffer.Dequeue();
@@ -84,16 +89,25 @@ namespace Client
                 if (_currentSnapshot != null)
                 {
                     InterpolateSnapshots();
+                    if (_currentSnapshot.Contains(_id))
+                    {
+                        SetLastInputIdProcessed();
+                        if (_lastInputUsedForConciliation < _currentSnapshot.GetLastInputIdProcessed(_id))
+                        {
+                            Conciliate();
+                        }
+                    }
                 }
             }
         }
+
+        private int _lastInputUsedForConciliation = -1;
 
         private void SendInputEvent()
         {
             var packet = GenerateInputPacket();
             _channel.Send(packet);
             packet.Free();
-            Logger.Log("Client[" + port + "]: Input already sent to server", false);
         }
 
         private Packet GenerateInputPacket()
@@ -127,9 +141,8 @@ namespace Client
         {
             var buffer = joinResponse.Buffer;
             _id = buffer.GetInt();
-            Logger.Log("Client[" + port + "]: Join response arrived! My id is " + _id, false);
             CreateNewPlayerFromBuffer(_id, buffer);
-            for (var clientsToAdd = buffer.GetInt(); clientsToAdd > 0; clientsToAdd--)
+            for (var playersToAdd = buffer.GetInt(); playersToAdd > 0; playersToAdd--)
             {
                 CreateNewPlayerFromBuffer(buffer.GetInt(), buffer);
             }
@@ -150,7 +163,6 @@ namespace Client
             var buffer = joinBroadcast.Buffer;
             var joinedId = buffer.GetInt();
             CreateNewPlayerFromBuffer(joinedId, buffer);
-            Logger.Log("Client[" + port + "]: Client " + joinedId + " has joined!", false);
         }
 
         private void OnDestroy()
@@ -163,7 +175,6 @@ namespace Client
             var packet = GenerateJoinPacket();
             _channel.Send(packet);
             packet.Free();
-            Logger.Log("Client[" + port + "]: Join request already sent to server", false);
         }
 
         private Packet GenerateJoinPacket()
@@ -181,50 +192,43 @@ namespace Client
 
         private void InterpolateSnapshots()
         {
-            _timeFromLastSnapshotInterpolation += Time.deltaTime;
             var time = Mathf.Clamp01(_timeFromLastSnapshotInterpolation / SecondsToReceiveNextSnapshot);
-            foreach (var id in _currentSnapshot.Ids.Where(key => _players.ContainsKey(key)))
+            foreach (var id in _currentSnapshot.Ids.Where(key => key != _id && _players.ContainsKey(key)))
             {
                 var player = _players[id];
                 player.GameObject.transform.position = Vector3.Lerp(player.LastSnapshotTransform.position,
                     _currentSnapshot.GetPosition(id), time);
                 player.GameObject.transform.rotation = Quaternion.Lerp(player.LastSnapshotTransform.rotation,
                     _currentSnapshot.GetRotation(id), time);
-
-                if (id == _id)
-                {
-                    //TODO: Avoid the interpolation in this case (maybe do the conciliation in other method)
-                    _playerInput.SetLastProcessedInputId(_currentSnapshot.GetLastInputProcessed(_id));
-                }
             }
         }
 
         private void HandleInputThroughPrediction()
         {
-            var client = _players[_id];
-            var movement = Vector3.zero;
-            var rotation = Vector3.zero;
+            var player = _players[_id].GameObject;
+            PlayerManager.ProcessInput(_playerInput.CurrentInput, player);
+        }
 
-            if (_playerInput.IsPressingForwardKey)
+        private void SetLastInputIdProcessed()
+        {
+            _playerInput.SetLastInputIdProcessedByServer(_currentSnapshot.GetLastInputIdProcessed(_id));
+        }
+        
+        private void Conciliate()
+        {
+            conciliationObject.transform.position = _currentSnapshot.GetPosition(_id);
+            conciliationObject.transform.rotation = _currentSnapshot.GetRotation(_id);
+            foreach (var input in _playerInput.GetInputsNotProcessedByServer())
             {
-                movement = client.GameObject.transform.forward.normalized * 0.1f;
+                PlayerManager.ProcessInput(input.Value, conciliationObject);
             }
-            else if (_playerInput.IsPressingBackwardsKey)
-            {
-                movement = client.GameObject.transform.forward.normalized * -0.1f;
-            }
-
-            if (_playerInput.IsPressingLeftKey)
-            {
-                rotation = Vector3.down * 5f;
-            }
-            else if (_playerInput.IsPressingRightKey)
-            {
-                rotation = Vector3.up * 5f;
-            }
-
-            client.GameObject.GetComponent<CharacterController>().Move(movement + Physics.gravity);
-            client.GameObject.transform.Rotate(rotation);
+            // var positionThreshold = 1f;
+            // var rotationThreshold = 1f;
+            // if (Vector3.Distance(conciliationTransform.position, playerTransform.position) > positionThreshold 
+            //     || Quaternion.Angle(conciliationTransform.rotation, playerTransform.rotation) > rotationThreshold)
+            _players[_id].GameObject.transform.position = conciliationObject.transform.position;
+            _players[_id].GameObject.transform.rotation = conciliationObject.transform.rotation;
+            _lastInputUsedForConciliation = _currentSnapshot.GetLastInputIdProcessed(_id);
         }
     }
 }

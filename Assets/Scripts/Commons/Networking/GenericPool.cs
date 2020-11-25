@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace Networking
+namespace Commons.Networking
 {
 	public class GenericPool<T> where T : GenericPoolableObject, new() {
 

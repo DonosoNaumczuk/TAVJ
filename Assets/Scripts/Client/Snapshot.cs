@@ -1,7 +1,6 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using Networking;
+using Commons.Networking;
 using UnityEngine;
 
 namespace Client
@@ -30,7 +29,7 @@ namespace Client
             return _transforms.ContainsKey(id);
         }
         
-        public int GetLastInputProcessed(int id)
+        public int GetLastInputIdProcessed(int id)
         {
             return _transforms[id].Item1;
         }

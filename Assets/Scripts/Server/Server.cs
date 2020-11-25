@@ -1,14 +1,15 @@
 using System.Collections.Generic;
 using System.Linq;
-using Networking;
+using Commons.Game;
+using Commons.Networking;
 using UnityEngine;
-using Event = Networking.Event;
+using Event = Commons.Networking.Event;
 
 namespace Server
 {
     public class Server : MonoBehaviour
     {
-        private const int SnapshotsPerSecond = 10;
+        private const int SnapshotsPerSecond = Constants.PacketsPerSecond;
         private const float SecondsToSendNextSnapshot = 1f / SnapshotsPerSecond;
 
         public int port;
@@ -78,13 +79,11 @@ namespace Server
         private void ReceiveEvents()
         {
             var packet = _channel.GetPacket();
-            Logger.Log("Server: Receiving events", packet != null && false);
             while (packet != null)
             {
                 HandleEventPacket(packet);
                 packet.Free();
                 packet = _channel.GetPacket();
-                Logger.Log("Server: Events received and processed", packet == null && false);
             }
         }
 
@@ -95,11 +94,9 @@ namespace Server
             {
                 case Event.Join:
                     HandleJoinRequest(eventPacket);
-                    Logger.Log("Server: Join event handled. I have " + _clients.Count + " clients now", false);
                     break;
                 case Event.Input:
                     HandleInputEvent(eventPacket);
-                    Logger.Log("Server: Input event handled", false);
                     break;
             }
         }
@@ -124,62 +121,9 @@ namespace Server
         {
             foreach (var client in _clients)
             {
-                var animator = client.Entity.GetComponent<Animator>();
                 while (client.ClientInput.NextInput())
                 {
-                    var movement = Vector3.zero;
-                    var rotation = Vector3.zero;
-
-                    if (client.ClientInput.IsPressingForwardKey)
-                    {
-                        movement = client.Entity.transform.forward.normalized * 0.1f;
-                        // if (!animator.GetBool("WalkingForward"))
-                        // {
-                        //     animator.SetBool("WalkingForward", true);
-                        //     animator.SetBool("WalkingBackward", false);
-                        // }
-                    }
-                    else if (client.ClientInput.IsPressingBackwardsKey)
-                    {
-                        movement = client.Entity.transform.forward.normalized * -0.1f;
-                        // if (!animator.GetBool("WalkingBackward"))
-                        // {
-                        //     animator.SetBool("WalkingBackward", true);
-                        //     animator.SetBool("WalkingForward", false);
-                        // }
-                    }
-                    // else
-                    // {
-                    //     animator.SetBool("WalkingForward", false);
-                    //     animator.SetBool("WalkingBackward", false);
-                    // }
-
-                    if (client.ClientInput.IsPressingLeftKey)
-                    {
-                        rotation = Vector3.down * 5f;
-                        // if (!animator.GetBool("RotatingLeft"))
-                        // {
-                        //     animator.SetBool("RotatingLeft", true);
-                        //     animator.SetBool("RotatingRight", false);
-                        // }
-                    }
-                    else if (client.ClientInput.IsPressingRightKey)
-                    {
-                        rotation = Vector3.up * 5f;
-                        // if (!animator.GetBool("RotatingRight"))
-                        // {
-                        //     animator.SetBool("RotatingRight", true);
-                        //     animator.SetBool("RotatingLeft", false);
-                        // }
-                    }
-                    // else
-                    // {
-                    //     animator.SetBool("RotatingLeft", false);
-                    //     animator.SetBool("RotatingRight", false);
-                    // }
-
-                    client.Entity.GetComponent<CharacterController>().Move(movement + Physics.gravity);
-                    client.Entity.transform.Rotate(rotation);
+                    PlayerManager.ProcessInput(client.ClientInput.CurrentInput, client.Entity);
                 }
             }
         }

@@ -1,4 +1,4 @@
-using Networking;
+using Commons.Networking;
 using UnityEngine;
 
 namespace Client
@@ -26,6 +26,7 @@ namespace Client
         public void DeserializeFromBuffer(BitBuffer buffer)
         {
             var transform = _gameObject.transform;
+            var _ = buffer.GetInt(); // Last input id processed, ignored!
             var position = new Vector3(buffer.GetFloat(), buffer.GetFloat(), buffer.GetFloat());
             var rotation = new Quaternion(buffer.GetFloat(), buffer.GetFloat(), buffer.GetFloat(), buffer.GetFloat());
             transform.position = position;

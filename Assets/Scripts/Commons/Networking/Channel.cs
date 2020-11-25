@@ -6,7 +6,7 @@ using System.Text;
 using System.Threading;
 using UnityEngine;
 
-namespace Networking
+namespace Commons.Networking
 {
 	public class Channel {
 
