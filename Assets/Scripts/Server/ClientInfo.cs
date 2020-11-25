@@ -30,6 +30,7 @@ namespace Server
         public void SerializeIntoBuffer(BitBuffer buffer)
         {
             buffer.PutInt(_id);
+            buffer.PutInt(_clientInput.LastProcessedInput);
             var transform = _entity.transform;
             var position = transform.position;
             buffer.PutFloat(position.x);

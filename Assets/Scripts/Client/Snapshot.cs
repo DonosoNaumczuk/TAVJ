@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Networking;
@@ -7,36 +8,41 @@ namespace Client
 {
     public class Snapshot
     {
-        private readonly Dictionary<int, (Vector3, Quaternion)> _transforms;
+        private readonly Dictionary<int, (int, Vector3, Quaternion)> _transforms;
 
         public Snapshot(BitBuffer buffer)
         {
-            _transforms = DeserializeFromBuffer(buffer);
-        }
-    
-        private Dictionary<int, (Vector3, Quaternion)> DeserializeFromBuffer(BitBuffer buffer)
-        {
-            var transforms = new Dictionary<int, (Vector3, Quaternion)>();
+            _transforms = new Dictionary<int, (int, Vector3, Quaternion)>();
             for (var clientsToProcess = buffer.GetInt(); clientsToProcess > 0; clientsToProcess--)
             {
                 var id = buffer.GetInt();
+                var lastInputProcessed = buffer.GetInt();
                 var position = new Vector3(buffer.GetFloat(), buffer.GetFloat(), buffer.GetFloat());
                 var rotation = new Quaternion(buffer.GetFloat(), buffer.GetFloat(), buffer.GetFloat(), buffer.GetFloat());
-                transforms[id] = (position, rotation);
+                _transforms[id] = (lastInputProcessed, position, rotation);
             }
-            return transforms;
         }
-    
+
         public List<int> Ids => _transforms.Keys.ToList();
     
         public bool Contains(int id)
         {
             return _transforms.ContainsKey(id);
         }
-
-        public (Vector3, Quaternion) GetPositionRotationTuple(int id)
+        
+        public int GetLastInputProcessed(int id)
         {
-            return _transforms[id];
+            return _transforms[id].Item1;
+        }
+
+        public Vector3 GetPosition(int id)
+        {
+            return _transforms[id].Item2;
+        }
+        
+        public Quaternion GetRotation(int id)
+        {
+            return _transforms[id].Item3;
         }
     }
 }

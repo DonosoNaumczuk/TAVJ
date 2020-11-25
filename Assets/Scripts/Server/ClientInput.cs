@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using Networking;
-using UnityEngine;
 
 namespace Server
 {
@@ -47,6 +46,7 @@ namespace Server
             {
                 var inputId = buffer.GetInt();
                 var input = (buffer.GetBit(),  buffer.GetBit(),  buffer.GetBit(),  buffer.GetBit());
+                Logger.Log("cyan", input.ToString(), inputsToRead == 1);
                 if (inputId > _lastProcessedInput && !_inputsToProcess.ContainsKey(inputId))
                 {
                     Logger.Log("green", "Server: _lastProcessedInput = " + _lastProcessedInput 
@@ -70,5 +70,7 @@ namespace Server
         public bool IsPressingLeftKey => _isPressingLeftKey;
 
         public bool IsPressingRightKey => _isPressingRightKey;
+
+        public int LastProcessedInput => _lastProcessedInput;
     }
 }

@@ -133,50 +133,50 @@ namespace Server
                     if (client.ClientInput.IsPressingForwardKey)
                     {
                         movement = client.Entity.transform.forward.normalized * 0.1f;
-                        if (!animator.GetBool("WalkingForward"))
-                        {
-                            animator.SetBool("WalkingForward", true);
-                            animator.SetBool("WalkingBackward", false);
-                        }
+                        // if (!animator.GetBool("WalkingForward"))
+                        // {
+                        //     animator.SetBool("WalkingForward", true);
+                        //     animator.SetBool("WalkingBackward", false);
+                        // }
                     }
                     else if (client.ClientInput.IsPressingBackwardsKey)
                     {
                         movement = client.Entity.transform.forward.normalized * -0.1f;
-                        if (!animator.GetBool("WalkingBackward"))
-                        {
-                            animator.SetBool("WalkingBackward", true);
-                            animator.SetBool("WalkingForward", false);
-                        }
+                        // if (!animator.GetBool("WalkingBackward"))
+                        // {
+                        //     animator.SetBool("WalkingBackward", true);
+                        //     animator.SetBool("WalkingForward", false);
+                        // }
                     }
-                    else
-                    {
-                        animator.SetBool("WalkingForward", false);
-                        animator.SetBool("WalkingBackward", false);
-                    }
+                    // else
+                    // {
+                    //     animator.SetBool("WalkingForward", false);
+                    //     animator.SetBool("WalkingBackward", false);
+                    // }
 
                     if (client.ClientInput.IsPressingLeftKey)
                     {
                         rotation = Vector3.down * 5f;
-                        if (!animator.GetBool("RotatingLeft"))
-                        {
-                            animator.SetBool("RotatingLeft", true);
-                            animator.SetBool("RotatingRight", false);
-                        }
+                        // if (!animator.GetBool("RotatingLeft"))
+                        // {
+                        //     animator.SetBool("RotatingLeft", true);
+                        //     animator.SetBool("RotatingRight", false);
+                        // }
                     }
                     else if (client.ClientInput.IsPressingRightKey)
                     {
                         rotation = Vector3.up * 5f;
-                        if (!animator.GetBool("RotatingRight"))
-                        {
-                            animator.SetBool("RotatingRight", true);
-                            animator.SetBool("RotatingLeft", false);
-                        }
+                        // if (!animator.GetBool("RotatingRight"))
+                        // {
+                        //     animator.SetBool("RotatingRight", true);
+                        //     animator.SetBool("RotatingLeft", false);
+                        // }
                     }
-                    else
-                    {
-                        animator.SetBool("RotatingLeft", false);
-                        animator.SetBool("RotatingRight", false);
-                    }
+                    // else
+                    // {
+                    //     animator.SetBool("RotatingLeft", false);
+                    //     animator.SetBool("RotatingRight", false);
+                    // }
 
                     client.Entity.GetComponent<CharacterController>().Move(movement + Physics.gravity);
                     client.Entity.transform.Rotate(rotation);

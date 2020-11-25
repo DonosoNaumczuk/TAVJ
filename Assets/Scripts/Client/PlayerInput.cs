@@ -61,13 +61,12 @@ namespace Client
             }
         }
 
-        public void ProcessInputAck(BitBuffer buffer)
+        public void SetLastProcessedInputId(int lastProcessedInputId)
         {
-            var ackInputId = buffer.GetInt();
-            if (ackInputId > _lastInputAckId)
+            if (lastProcessedInputId > _lastInputAckId)
             {
-                _lastInputAckId = ackInputId;
-                foreach (var inputId in _inputs.Keys.Where(id => id < _lastInputAckId))
+                _lastInputAckId = lastProcessedInputId;
+                foreach (var inputId in _inputs.Keys.Where(id => id <= _lastInputAckId).ToList())
                 {
                     _inputs.Remove(inputId);
                 }
@@ -81,6 +80,7 @@ namespace Client
 
         public bool HasInputsToSend()
         {
+            Logger.Log("green", "_inputs.Count = " + _inputs.Count, true);
             return _inputs.Count > 0;
         }
 

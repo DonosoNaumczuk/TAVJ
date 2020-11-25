@@ -186,11 +186,16 @@ namespace Client
             foreach (var id in _currentSnapshot.Ids.Where(key => _players.ContainsKey(key)))
             {
                 var player = _players[id];
-                var positionRotationTuple = _currentSnapshot.GetPositionRotationTuple(id);
                 player.GameObject.transform.position = Vector3.Lerp(player.LastSnapshotTransform.position,
-                    positionRotationTuple.Item1, time);
+                    _currentSnapshot.GetPosition(id), time);
                 player.GameObject.transform.rotation = Quaternion.Lerp(player.LastSnapshotTransform.rotation,
-                    positionRotationTuple.Item2, time);
+                    _currentSnapshot.GetRotation(id), time);
+
+                if (id == _id)
+                {
+                    //TODO: Avoid the interpolation in this case (maybe do the conciliation in other method)
+                    _playerInput.SetLastProcessedInputId(_currentSnapshot.GetLastInputProcessed(_id));
+                }
             }
         }
 
