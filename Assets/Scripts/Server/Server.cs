@@ -2,8 +2,10 @@ using System.Collections.Generic;
 using System.Linq;
 using Commons.Game;
 using Commons.Networking;
+using Commons.Utils;
 using UnityEngine;
 using Event = Commons.Networking.Event;
+using Logger = Commons.Utils.Logger;
 
 namespace Server
 {
@@ -40,7 +42,7 @@ namespace Server
         {
             HandleClientMovement();
 
-            _secondsSinceLastSnapshotSent += Time.deltaTime;
+            _secondsSinceLastSnapshotSent += Time.fixedDeltaTime;
             if (_secondsSinceLastSnapshotSent >= SecondsToSendNextSnapshot)
             {
                 SendSnapshots();
@@ -63,15 +65,14 @@ namespace Server
         {
             var packet = Packet.Obtain();
             var buffer = packet.Buffer;
-            var clientsThatChanged = _clients.Where(client => client.Entity.transform.hasChanged).ToList();
+            var clientsThatChanged = _clients; //_clients.Where(client => client.Entity.transform.hasChanged).ToList();
             EventSerializer.SerializeIntoBuffer(buffer, Event.Snapshot);
             buffer.PutInt(clientsThatChanged.Count);
             foreach (var client in clientsThatChanged)
             {
                 client.SerializeIntoBuffer(buffer);
-                client.Entity.transform.hasChanged = false;
+                //client.Entity.transform.hasChanged = false;
             }
-
             buffer.Flush();
             return packet;
         }
@@ -103,7 +104,7 @@ namespace Server
 
         private void HandleJoinRequest(Packet joinRequest)
         {
-            var entity = Instantiate(entityPrefab, Vector3.up, Quaternion.identity);
+            var entity = Instantiate(entityPrefab, Vector3.zero, Quaternion.identity);
             entity.name = "Player_" + _clients.Count + "@Server";
             var clientInfo = new ClientInfo(_clients.Count, joinRequest.FromEndPoint, entity);
             _clients.Add(clientInfo);
@@ -123,8 +124,17 @@ namespace Server
             {
                 while (client.ClientInput.NextInput())
                 {
-                    PlayerManager.ProcessInput(client.ClientInput.CurrentInput, client.Entity);
+                    Logger.Log("S: Before Executing #" + client.ClientInput.CurrentInputId 
+                        + ", P = " + Printer.V3(client.Entity.transform.position) 
+                        + ", R = " + Printer.Q4(client.Entity.transform.rotation), false, "lime");
+                    var (mov, rot) = PlayerManager.ProcessInput(client.ClientInput.CurrentInput, client.Entity, "S", "green");
+                    Logger.Log("S: After  Executing #" + client.ClientInput.CurrentInputId 
+                        + ", mM = " + Printer.V3(mov)
+                        + ", mR = " + Printer.V3(rot)    
+                        + ", P = " + Printer.V3(client.Entity.transform.position) 
+                        + ", R = " + Printer.Q4(client.Entity.transform.rotation), false, "lime");
                 }
+                client.Entity.GetComponent<CharacterController>().Move(Physics.gravity * Time.fixedDeltaTime);
             }
         }
 

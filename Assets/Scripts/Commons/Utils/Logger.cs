@@ -17,12 +17,17 @@ namespace Commons.Utils
             }
         }
 
-        public static void Log(string color, string log, bool condition)
+        public static void Log(string log, bool condition, string color)
         {
             if (condition)
             {
                 Debug.Log("<color=" + color + ">" + log + "</color>");
             }
+        }
+        
+        public static void Log(string log, string color)
+        {
+            Debug.Log("<color=" + color + ">" + log + "</color>");
         }
     }
 }

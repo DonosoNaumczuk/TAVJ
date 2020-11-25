@@ -47,5 +47,7 @@ namespace Server
         public Input CurrentInput => _currentInput;
 
         public int LastInputIdProcessed => _lastInputIdProcessed;
+        
+        public int CurrentInputId => _lastInputIdProcessed;
     }
 }

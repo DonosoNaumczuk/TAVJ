@@ -3,6 +3,7 @@ using System.Linq;
 using Commons.Networking;
 using UnityEngine;
 using Input = Commons.Game.Input;
+using Logger = Commons.Utils.Logger;
 
 namespace Client
 {
@@ -12,11 +13,10 @@ namespace Client
         private readonly KeyCode _backwardsKey;
         private readonly KeyCode _leftKey;
         private readonly KeyCode _rightKey;
-        private readonly SortedDictionary<int, Input> _inputs;
+        private readonly SortedDictionary<int, Input> _inputsToSend;
 
         private Input _currentInput;
-        private int _lastInputIdProcessed;
-        private int _lastInputReadId;
+        private int _biggestInputIdQueuedToSend;
     
         public PlayerInput(KeyCode forwardKey, KeyCode backwardsKey, KeyCode leftKey, KeyCode rightKey)
         {
@@ -25,57 +25,47 @@ namespace Client
             _leftKey = leftKey;
             _rightKey = rightKey;
             _currentInput = new Input();
-            _lastInputReadId = -1;
-            _lastInputIdProcessed = -1;
-            _inputs = new SortedDictionary<int, Input>();
+            _biggestInputIdQueuedToSend = -1;
+            _inputsToSend = new SortedDictionary<int, Input>();
         }
 
         public void Read()
         {
             _currentInput = new Input(UnityEngine.Input.GetKey(_forwardKey), UnityEngine.Input.GetKey(_backwardsKey),
                 UnityEngine.Input.GetKey(_leftKey), UnityEngine.Input.GetKey(_rightKey));
-            if (_currentInput.IsPressingSomething())
-            {
-                _inputs[++_lastInputReadId] = _currentInput;
-            }
+            _inputsToSend[++_biggestInputIdQueuedToSend] = _currentInput;
         }
 
         public void SerializeIntoBuffer(BitBuffer buffer)
         {
-            buffer.PutInt(_inputs.Count);
-            foreach (var input in _inputs)
+            buffer.PutInt(_inputsToSend.Count);
+            foreach (var input in _inputsToSend)
             {
                 buffer.PutInt(input.Key);
                 input.Value.SerializeIntoBuffer(buffer);
             }
         }
 
-        public void SetLastInputIdProcessedByServer(int lastInputIdProcessed)
+        public void DiscardInputsAlreadyProcessedByServer(int lastInputIdProcessedByServer)
         {
-            if (lastInputIdProcessed > _lastInputIdProcessed)
+            foreach (var inputId in _inputsToSend.Keys.Where(id => id <= lastInputIdProcessedByServer).ToList())
             {
-                _lastInputIdProcessed = lastInputIdProcessed;
-                foreach (var inputId in _inputs.Keys.Where(id => id <= _lastInputIdProcessed).ToList())
-                {
-                    _inputs.Remove(inputId);
-                }
+                _inputsToSend.Remove(inputId);
             }
         }
 
         public bool HasInputsToSend()
         {
-            return _inputs.Count > 0;
+            return _inputsToSend.Count > 0;
         }
 
         public SortedDictionary<int, Input> GetInputsNotProcessedByServer()
         {
-            return _inputs;
+            return _inputsToSend;
         }
 
         public Input CurrentInput => _currentInput;
 
-        public int LastInputReadId => _lastInputReadId;
-
-        public int LastInputIdProcessed => _lastInputIdProcessed;
+        public int BiggestInputIdQueuedToSend => _biggestInputIdQueuedToSend;
     }
 }

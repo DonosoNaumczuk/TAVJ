@@ -2,8 +2,10 @@ using System.Collections.Generic;
 using System.Linq;
 using Commons.Game;
 using Commons.Networking;
+using Commons.Utils;
 using UnityEngine;
 using Event = Commons.Networking.Event;
+using Logger = Commons.Utils.Logger;
 
 namespace Client
 {
@@ -12,8 +14,10 @@ namespace Client
         public int port;
         public int serverPort;
         public string serverIp;
+        public GameObject mainPlayerPrefab;
         public GameObject playerPrefab;
-        public GameObject conciliationObject;
+        public GameObject conciliationPrefab;
+        private GameObject _conciliationObject;
         public KeyCode forwardKey;
         public KeyCode backwardsKey;
         public KeyCode leftKey;
@@ -28,6 +32,7 @@ namespace Client
         private Snapshot _currentSnapshot;
         private float _timeFromLastSnapshotInterpolation;
         private PlayerInput _playerInput;
+        private int _lastInputUsedAsBaseForConciliation;
 
         private const int SnapshotsPerSecond = Constants.PacketsPerSecond;
         private const float SecondsToReceiveNextSnapshot = 1f / SnapshotsPerSecond;
@@ -42,6 +47,7 @@ namespace Client
             _timeFromLastSnapshotInterpolation = 0f;
             _playerInput = new PlayerInput(forwardKey, backwardsKey, leftKey, rightKey);
             _isConnected = false;
+            _lastInputUsedAsBaseForConciliation = -1;
         }
 
         void Start()
@@ -70,15 +76,20 @@ namespace Client
                     SendInputEvent();
                 }
 
-                if (_playerInput.CurrentInput.IsPressingSomething())
-                {
-                    HandleInputThroughPrediction();
-                }
+                // if (_playerInput.CurrentInput.IsPressingSomething())
+                // {
+                //     HandleInputThroughPrediction();
+                // }
+                HandleInputThroughPrediction();
 
-                _timeFromLastSnapshotInterpolation += Time.deltaTime;
+                _timeFromLastSnapshotInterpolation += Time.fixedDeltaTime;
                 if (_snapshotBuffer.Count >= InterpolationBufferSize)
                 {
                     _currentSnapshot = _snapshotBuffer.Dequeue();
+                    if (_currentSnapshot.Contains(_id))
+                    {
+                        Logger.Log("ACK = " + _currentSnapshot.GetLastInputIdProcessed(_id), false, "magenta");
+                    }
                     _timeFromLastSnapshotInterpolation = 0f;
                     foreach (var player in _players.Values)
                     {
@@ -91,17 +102,16 @@ namespace Client
                     InterpolateSnapshots();
                     if (_currentSnapshot.Contains(_id))
                     {
-                        SetLastInputIdProcessed();
-                        if (_lastInputUsedForConciliation < _currentSnapshot.GetLastInputIdProcessed(_id))
+                        var lastInputIdProcessedByServer = _currentSnapshot.GetLastInputIdProcessed(_id);
+                        _playerInput.DiscardInputsAlreadyProcessedByServer(lastInputIdProcessedByServer);
+                        if (_lastInputUsedAsBaseForConciliation < lastInputIdProcessedByServer)
                         {
-                            Conciliate();
+                            //Conciliate();
                         }
                     }
                 }
             }
         }
-
-        private int _lastInputUsedForConciliation = -1;
 
         private void SendInputEvent()
         {
@@ -141,17 +151,19 @@ namespace Client
         {
             var buffer = joinResponse.Buffer;
             _id = buffer.GetInt();
-            CreateNewPlayerFromBuffer(_id, buffer);
+            CreateNewPlayerFromBuffer(_id, mainPlayerPrefab, buffer);
+            _conciliationObject = Instantiate(conciliationPrefab, Vector3.zero, Quaternion.identity);
+            _conciliationObject.name = "Conciliation_Object@Client_" + _id;
             for (var playersToAdd = buffer.GetInt(); playersToAdd > 0; playersToAdd--)
             {
-                CreateNewPlayerFromBuffer(buffer.GetInt(), buffer);
+                CreateNewPlayerFromBuffer(buffer.GetInt(), playerPrefab, buffer);
             }
             _isConnected = true;
         }
 
-        private void CreateNewPlayerFromBuffer(int id, BitBuffer buffer)
+        private void CreateNewPlayerFromBuffer(int id, GameObject prefab, BitBuffer buffer)
         {
-            var playerGameObject = Instantiate(playerPrefab, Vector3.up, Quaternion.identity);
+            var playerGameObject = Instantiate(prefab, Vector3.zero, Quaternion.identity);
             playerGameObject.name = "Player_" + id + "@Client_" + _id;
             var player = new Player(id, playerGameObject);
             player.DeserializeFromBuffer(buffer);
@@ -162,7 +174,7 @@ namespace Client
         {
             var buffer = joinBroadcast.Buffer;
             var joinedId = buffer.GetInt();
-            CreateNewPlayerFromBuffer(joinedId, buffer);
+            CreateNewPlayerFromBuffer(joinedId, playerPrefab, buffer);
         }
 
         private void OnDestroy()
@@ -205,30 +217,47 @@ namespace Client
 
         private void HandleInputThroughPrediction()
         {
-            var player = _players[_id].GameObject;
-            PlayerManager.ProcessInput(_playerInput.CurrentInput, player);
+            if (_playerInput.CurrentInput.IsPressingSomething())
+            {
+                var player = _players[_id].GameObject;
+                Logger.Log("P: Before Executing #" + _playerInput.BiggestInputIdQueuedToSend
+                   + ", P = " + Printer.V3(player.transform.position)
+                   + ", R = " + Printer.Q4(player.transform.rotation), false, "cyan");
+                var (mov, rot) = PlayerManager.ProcessInput(_playerInput.CurrentInput, player, "P", "grey");
+                Logger.Log("P: After  Executing #" + _playerInput.BiggestInputIdQueuedToSend
+                   + ", mM = " + Printer.V3(mov)
+                   + ", mR = " + Printer.V3(rot)
+                   + ", P = " + Printer.V3(player.transform.position)
+                   + ", R = " + Printer.Q4(player.transform.rotation), false, "cyan");
+            }
+            _players[_id].GameObject.GetComponent<CharacterController>().Move(Physics.gravity * Time.fixedDeltaTime);
         }
 
-        private void SetLastInputIdProcessed()
-        {
-            _playerInput.SetLastInputIdProcessedByServer(_currentSnapshot.GetLastInputIdProcessed(_id));
-        }
-        
         private void Conciliate()
         {
-            conciliationObject.transform.position = _currentSnapshot.GetPosition(_id);
-            conciliationObject.transform.rotation = _currentSnapshot.GetRotation(_id);
+            _conciliationObject.transform.position = _currentSnapshot.GetPosition(_id);
+            _conciliationObject.transform.rotation = _currentSnapshot.GetRotation(_id);
+            Logger.Log("C: Transform took from #" + _currentSnapshot.GetLastInputIdProcessed(_id)
+                + ", P = " + Printer.V3(_conciliationObject.transform.position) 
+                + ", R = " + Printer.Q4(_conciliationObject.transform.rotation), false, "orange");
             foreach (var input in _playerInput.GetInputsNotProcessedByServer())
             {
-                PlayerManager.ProcessInput(input.Value, conciliationObject);
+                Logger.Log("C: Before Executing #" + input.Key 
+                    + ", P = " + Printer.V3(_conciliationObject.transform.position) 
+                    + ", R = " + Printer.Q4(_conciliationObject.transform.rotation), false, "yellow");
+                var (mov, rot) = PlayerManager.ProcessInput(input.Value, _conciliationObject, "C", "orange");
+                Logger.Log("C: After  Executing #" + input.Key
+                    + ", mM = " + Printer.V3(mov)
+                    + ", mR = " + Printer.V3(rot)                                
+                    + ", P = " + Printer.V3(_conciliationObject.transform.position) 
+                    + ", R = " + Printer.Q4(_conciliationObject.transform.rotation), false, "yellow");
             }
-            // var positionThreshold = 1f;
-            // var rotationThreshold = 1f;
-            // if (Vector3.Distance(conciliationTransform.position, playerTransform.position) > positionThreshold 
-            //     || Quaternion.Angle(conciliationTransform.rotation, playerTransform.rotation) > rotationThreshold)
-            _players[_id].GameObject.transform.position = conciliationObject.transform.position;
-            _players[_id].GameObject.transform.rotation = conciliationObject.transform.rotation;
-            _lastInputUsedForConciliation = _currentSnapshot.GetLastInputIdProcessed(_id);
+            Logger.Log("Conciliation: Finished"
+                + ", P = " + Printer.V3(_conciliationObject.transform.position) 
+                + ", R = " + Printer.Q4(_conciliationObject.transform.rotation), false, "orange");
+            _players[_id].GameObject.transform.position = _conciliationObject.transform.position;
+            _players[_id].GameObject.transform.rotation = _conciliationObject.transform.rotation;
+            _lastInputUsedAsBaseForConciliation = _currentSnapshot.GetLastInputIdProcessed(_id);
         }
     }
 }

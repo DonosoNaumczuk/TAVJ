@@ -1,35 +1,53 @@
+using Commons.Utils;
 using UnityEngine;
+using Logger = Commons.Utils.Logger;
 
 namespace Commons.Game
 {
     public static class PlayerManager
     {
         private const float RotationScaleFactor = 200f;
-        private const float MovementScaleFactor = 10f;
+        private const float MovementScaleFactor = 8f;
         
-        public static void ProcessInput(Input input, GameObject player)
+        public static (Vector3, Vector3) ProcessInput(Input input, GameObject player, string entity, string color)
         {
-            var movement = Physics.gravity;
+            var movement = Vector3.zero;
             var rotation = Vector3.zero;
+            var movChanged = false;
+            var rotChanged = false;
             if (input.IsPressingForwardKey)
             {
-                movement = player.transform.forward.normalized;
+                movement += player.transform.forward.normalized;
+                movChanged = true;
             }
             else if (input.IsPressingBackwardsKey)
             {
-                movement = -player.transform.forward.normalized;
+                movement += -player.transform.forward.normalized;
+                movChanged = true;
             }
 
             if (input.IsPressingLeftKey)
             {
-                rotation = Vector3.down;
+                rotation += Vector3.down;
+                rotChanged = true;
             }
             else if (input.IsPressingRightKey)
             {
-                rotation = Vector3.up;
+                rotation += Vector3.up;
+                rotChanged = true;
             }
-            player.GetComponent<CharacterController>().Move(movement * (MovementScaleFactor * Time.deltaTime));
-            player.transform.Rotate(rotation * (RotationScaleFactor * Time.deltaTime));
+
+            var finalMov = movement * (MovementScaleFactor * Time.fixedDeltaTime);
+            var finalRot = rotation * (RotationScaleFactor * Time.fixedDeltaTime);
+            if (movChanged)
+            {
+                player.GetComponent<CharacterController>().Move(finalMov);
+            }
+            if (rotChanged)
+            {
+                player.transform.Rotate(finalRot);
+            }
+            return (movement, rotation);
         }
     }
 }
