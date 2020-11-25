@@ -11,7 +11,7 @@ namespace Client
         public int port;
         public int serverPort;
         public string serverIp;
-        public GameObject entityPrefab;
+        public GameObject playerPrefab;
         public KeyCode forwardKey;
         public KeyCode backwardsKey;
         public KeyCode leftKey;
@@ -21,7 +21,7 @@ namespace Client
 
         private Channel _channel;
         private int _id;
-        private Dictionary<int, Player> _entities;
+        private Dictionary<int, Player> _players;
         private Queue<Snapshot> _snapshotBuffer;
         private Snapshot _currentSnapshot;
         private float _timeFromLastSnapshotInterpolation;
@@ -30,14 +30,17 @@ namespace Client
         private const float SecondsToReceiveNextSnapshot = 1f / SnapshotsPerSecond;
         private const int InterpolationBufferSize = 3;
 
+        private bool _isConnected;
+
         private void Awake()
         {
             _channel = new Channel(serverIp, port, serverPort);
-            _entities = new Dictionary<int, Player>();
+            _players = new Dictionary<int, Player>();
             _snapshotBuffer = new Queue<Snapshot>();
             _currentSnapshot = null;
             _timeFromLastSnapshotInterpolation = 0f;
             _playerInput = new PlayerInput(forwardKey, backwardsKey, leftKey, rightKey);
+            _isConnected = false;
         }
 
         void Start()
@@ -58,23 +61,30 @@ namespace Client
 
         private void FixedUpdate()
         {
-            _playerInput.Read();
-            SendInputEvent();
-            HandleInputThroughPrediction();
-
-            if (_snapshotBuffer.Count >= InterpolationBufferSize)
+            if (_isConnected)
             {
-                _currentSnapshot = _snapshotBuffer.Dequeue();
-                _timeFromLastSnapshotInterpolation = 0f;
-                foreach (var entity in _entities.Values)
+                _playerInput.Read();
+                if (_playerInput.HasInputsToSend())
                 {
-                    entity.RefreshLastSnapshotTransform();
+                    SendInputEvent();
                 }
-            }
 
-            if (_currentSnapshot != null)
-            {
-                InterpolateSnapshots();
+                HandleInputThroughPrediction();
+
+                if (_snapshotBuffer.Count >= InterpolationBufferSize)
+                {
+                    _currentSnapshot = _snapshotBuffer.Dequeue();
+                    _timeFromLastSnapshotInterpolation = 0f;
+                    foreach (var player in _players.Values)
+                    {
+                        player.RefreshLastSnapshotTransform();
+                    }
+                }
+
+                if (_currentSnapshot != null)
+                {
+                    InterpolateSnapshots();
+                }
             }
         }
 
@@ -83,7 +93,7 @@ namespace Client
             var packet = GenerateInputPacket();
             _channel.Send(packet);
             packet.Free();
-            Logger.Log("Client[" + port + "]: Input already sent to server");
+            Logger.Log("Client[" + port + "]: Input already sent to server", false);
         }
 
         private Packet GenerateInputPacket()
@@ -117,29 +127,30 @@ namespace Client
         {
             var buffer = joinResponse.Buffer;
             _id = buffer.GetInt();
-            Logger.Log("Client[" + port + "]: Join response arrived! My id is " + _id);
-            CreateNewEntityFromBuffer(_id, buffer);
+            Logger.Log("Client[" + port + "]: Join response arrived! My id is " + _id, false);
+            CreateNewPlayerFromBuffer(_id, buffer);
             for (var clientsToAdd = buffer.GetInt(); clientsToAdd > 0; clientsToAdd--)
             {
-                CreateNewEntityFromBuffer(buffer.GetInt(), buffer);
+                CreateNewPlayerFromBuffer(buffer.GetInt(), buffer);
             }
+            _isConnected = true;
         }
 
-        private void CreateNewEntityFromBuffer(int id, BitBuffer buffer)
+        private void CreateNewPlayerFromBuffer(int id, BitBuffer buffer)
         {
-            var entityGameObject = Instantiate(entityPrefab, Vector3.up, Quaternion.identity);
-            entityGameObject.name = "Player_" + id + "@Client_" + _id;
-            var entity = new Player(id, entityGameObject);
-            entity.DeserializeFromBuffer(buffer);
-            _entities.Add(id, entity);
+            var playerGameObject = Instantiate(playerPrefab, Vector3.up, Quaternion.identity);
+            playerGameObject.name = "Player_" + id + "@Client_" + _id;
+            var player = new Player(id, playerGameObject);
+            player.DeserializeFromBuffer(buffer);
+            _players.Add(id, player);
         }
 
         private void HandleJoinBroadcast(Packet joinBroadcast)
         {
             var buffer = joinBroadcast.Buffer;
             var joinedId = buffer.GetInt();
-            CreateNewEntityFromBuffer(joinedId, buffer);
-            Logger.Log("Client[" + port + "]: Client " + joinedId + " has joined!");
+            CreateNewPlayerFromBuffer(joinedId, buffer);
+            Logger.Log("Client[" + port + "]: Client " + joinedId + " has joined!", false);
         }
 
         private void OnDestroy()
@@ -152,7 +163,7 @@ namespace Client
             var packet = GenerateJoinPacket();
             _channel.Send(packet);
             packet.Free();
-            Logger.Log("Client[" + port + "]: Join request already sent to server");
+            Logger.Log("Client[" + port + "]: Join request already sent to server", false);
         }
 
         private Packet GenerateJoinPacket()
@@ -172,20 +183,20 @@ namespace Client
         {
             _timeFromLastSnapshotInterpolation += Time.deltaTime;
             var time = Mathf.Clamp01(_timeFromLastSnapshotInterpolation / SecondsToReceiveNextSnapshot);
-            foreach (var id in _currentSnapshot.Ids.Where(key => _entities.ContainsKey(key)))
+            foreach (var id in _currentSnapshot.Ids.Where(key => _players.ContainsKey(key)))
             {
-                var entity = _entities[id];
+                var player = _players[id];
                 var positionRotationTuple = _currentSnapshot.GetPositionRotationTuple(id);
-                entity.GameObject.transform.position = Vector3.Lerp(entity.LastSnapshotTransform.position,
+                player.GameObject.transform.position = Vector3.Lerp(player.LastSnapshotTransform.position,
                     positionRotationTuple.Item1, time);
-                entity.GameObject.transform.rotation = Quaternion.Lerp(entity.LastSnapshotTransform.rotation,
+                player.GameObject.transform.rotation = Quaternion.Lerp(player.LastSnapshotTransform.rotation,
                     positionRotationTuple.Item2, time);
             }
         }
 
         private void HandleInputThroughPrediction()
         {
-            var client = _entities[_id];
+            var client = _players[_id];
             var movement = Vector3.zero;
             var rotation = Vector3.zero;
 

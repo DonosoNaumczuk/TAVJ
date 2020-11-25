@@ -9,8 +9,7 @@ namespace Server
         private readonly int _id;
         private readonly IPEndPoint _endPoint;
         private readonly GameObject _entity;
-    
-        private ClientInput _clientInput;
+        private readonly ClientInput _clientInput;
 
         public ClientInfo(int id, IPEndPoint endPoint, GameObject entity)
         {
@@ -41,11 +40,6 @@ namespace Server
             buffer.PutFloat(rotation.y);
             buffer.PutFloat(rotation.z);
             buffer.PutFloat(rotation.w);
-        }
-    
-        public void UpdatePlayerInput(ClientInput clientInput)
-        {
-            _clientInput = clientInput;
         }
     }
 }

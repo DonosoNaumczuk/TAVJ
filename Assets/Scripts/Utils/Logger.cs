@@ -14,4 +14,12 @@ public static class Logger
             Debug.Log(log);
         }
     }
+
+    public static void Log(string color, string log, bool condition)
+    {
+        if (condition)
+        {
+            Debug.Log("<color=" + color + ">" + log + "</color>");
+        }
+    }
 }

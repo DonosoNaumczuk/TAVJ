@@ -1,5 +1,7 @@
 using System.Collections.Generic;
+using System.Linq;
 using Networking;
+using UnityEngine;
 
 namespace Server
 {
@@ -9,24 +11,57 @@ namespace Server
         private bool _isPressingBackwardsKey; 
         private bool _isPressingLeftKey;
         private bool _isPressingRightKey;
-        private SortedDictionary<int, (bool, bool, bool, bool)> _inputs;
-        
-        public ClientInput(BitBuffer buffer)
-        {
-            _isPressingForwardKey = buffer.GetBit(); 
-            _isPressingBackwardsKey = buffer.GetBit(); 
-            _isPressingLeftKey = buffer.GetBit();
-            _isPressingRightKey = buffer.GetBit();
-            _inputs = new SortedDictionary<int, (bool, bool, bool, bool)>();
-        }
-        
+        private int _lastProcessedInput;
+        private readonly SortedDictionary<int, (bool, bool, bool, bool)> _inputsToProcess;
+
         public ClientInput()
         {
             _isPressingForwardKey = false; 
             _isPressingBackwardsKey = false; 
             _isPressingLeftKey = false;
             _isPressingRightKey = false;
-            _inputs = new SortedDictionary<int, (bool, bool, bool, bool)>();
+            _lastProcessedInput = -1;
+            _inputsToProcess = new SortedDictionary<int, (bool, bool, bool, bool)>();
+        }
+
+        public bool NextInput()
+        {
+            Logger.Log("Server: _inputsToProcess.Count = " + _inputsToProcess.Count, false);
+            Logger.Log("Server: _lastProcessedInput = " + _lastProcessedInput, false);
+            if (_inputsToProcess.Count > 0)
+            {
+                var nextInput = _inputsToProcess.First();
+                (_isPressingForwardKey, _isPressingBackwardsKey, _isPressingLeftKey, _isPressingRightKey) = nextInput.Value;
+                Logger.Log("yellow", "Server: _lastProcessedInput = " + _lastProcessedInput 
+                    + ", nextInput.Key = " + nextInput.Key, false);
+                _lastProcessedInput = nextInput.Key;
+                Logger.Log(_inputsToProcess.ToString());
+                _inputsToProcess.Remove(nextInput.Key);
+                return true;
+            }
+            return false;
+        }
+
+        public void AddFromBuffer(BitBuffer buffer)
+        {
+            for (var inputsToRead = GetInputsToRead(buffer); inputsToRead > 0; inputsToRead--)
+            {
+                var inputId = buffer.GetInt();
+                var input = (buffer.GetBit(),  buffer.GetBit(),  buffer.GetBit(),  buffer.GetBit());
+                if (inputId > _lastProcessedInput && !_inputsToProcess.ContainsKey(inputId))
+                {
+                    Logger.Log("green", "Server: _lastProcessedInput = " + _lastProcessedInput 
+                        + ", _inputsToProcess.Add(Input " + inputId + ")", false);
+                    _inputsToProcess[inputId] = input;
+                }
+            }
+        }
+
+        private int GetInputsToRead(BitBuffer buffer)
+        {
+            var inputsToRead = buffer.GetInt();
+            Logger.Log("Server: inputsToRead = " + inputsToRead, false);
+            return inputsToRead;
         }
 
         public bool IsPressingForwardKey => _isPressingForwardKey;

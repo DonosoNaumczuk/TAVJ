@@ -33,7 +33,10 @@ namespace Server
         private void Update()
         {
             ReceiveEvents();
+        }
 
+        private void FixedUpdate()
+        {
             HandleClientMovement();
 
             _secondsSinceLastSnapshotSent += Time.deltaTime;
@@ -75,13 +78,13 @@ namespace Server
         private void ReceiveEvents()
         {
             var packet = _channel.GetPacket();
-            Logger.Log("Server: Receiving events", packet != null);
+            Logger.Log("Server: Receiving events", packet != null && false);
             while (packet != null)
             {
                 HandleEventPacket(packet);
                 packet.Free();
                 packet = _channel.GetPacket();
-                Logger.Log("Server: Events received and processed", packet == null);
+                Logger.Log("Server: Events received and processed", packet == null && false);
             }
         }
 
@@ -92,11 +95,11 @@ namespace Server
             {
                 case Event.Join:
                     HandleJoinRequest(eventPacket);
-                    Logger.Log("Server: Join event handled. I have " + _clients.Count + " clients now");
+                    Logger.Log("Server: Join event handled. I have " + _clients.Count + " clients now", false);
                     break;
                 case Event.Input:
                     HandleInputEvent(eventPacket);
-                    Logger.Log("Server: Input event handled");
+                    Logger.Log("Server: Input event handled", false);
                     break;
             }
         }
@@ -114,68 +117,70 @@ namespace Server
         private void HandleInputEvent(Packet inputPacket)
         {
             var id = inputPacket.Buffer.GetInt();
-            var input = new ClientInput(inputPacket.Buffer);
-            _clients[id].UpdatePlayerInput(input);
+            _clients[id].ClientInput.AddFromBuffer(inputPacket.Buffer);
         }
 
         private void HandleClientMovement()
         {
             foreach (var client in _clients)
             {
-                var movement = Vector3.zero;
-                var rotation = Vector3.zero;
                 var animator = client.Entity.GetComponent<Animator>();
-
-                if (client.ClientInput.IsPressingForwardKey)
+                while (client.ClientInput.NextInput())
                 {
-                    movement = client.Entity.transform.forward.normalized * 0.1f;
-                    if (!animator.GetBool("WalkingForward"))
+                    var movement = Vector3.zero;
+                    var rotation = Vector3.zero;
+
+                    if (client.ClientInput.IsPressingForwardKey)
                     {
-                        animator.SetBool("WalkingForward", true);
+                        movement = client.Entity.transform.forward.normalized * 0.1f;
+                        if (!animator.GetBool("WalkingForward"))
+                        {
+                            animator.SetBool("WalkingForward", true);
+                            animator.SetBool("WalkingBackward", false);
+                        }
+                    }
+                    else if (client.ClientInput.IsPressingBackwardsKey)
+                    {
+                        movement = client.Entity.transform.forward.normalized * -0.1f;
+                        if (!animator.GetBool("WalkingBackward"))
+                        {
+                            animator.SetBool("WalkingBackward", true);
+                            animator.SetBool("WalkingForward", false);
+                        }
+                    }
+                    else
+                    {
+                        animator.SetBool("WalkingForward", false);
                         animator.SetBool("WalkingBackward", false);
                     }
-                }
-                else if (client.ClientInput.IsPressingBackwardsKey)
-                {
-                    movement = client.Entity.transform.forward.normalized * -0.1f;
-                    if (!animator.GetBool("WalkingBackward"))
-                    {
-                        animator.SetBool("WalkingBackward", true);
-                        animator.SetBool("WalkingForward", false);
-                    }
-                }
-                else
-                {
-                    animator.SetBool("WalkingForward", false);
-                    animator.SetBool("WalkingBackward", false);
-                }
 
-                if (client.ClientInput.IsPressingLeftKey)
-                {
-                    rotation = Vector3.down * 5f;
-                    if (!animator.GetBool("RotatingLeft"))
+                    if (client.ClientInput.IsPressingLeftKey)
                     {
-                        animator.SetBool("RotatingLeft", true);
+                        rotation = Vector3.down * 5f;
+                        if (!animator.GetBool("RotatingLeft"))
+                        {
+                            animator.SetBool("RotatingLeft", true);
+                            animator.SetBool("RotatingRight", false);
+                        }
+                    }
+                    else if (client.ClientInput.IsPressingRightKey)
+                    {
+                        rotation = Vector3.up * 5f;
+                        if (!animator.GetBool("RotatingRight"))
+                        {
+                            animator.SetBool("RotatingRight", true);
+                            animator.SetBool("RotatingLeft", false);
+                        }
+                    }
+                    else
+                    {
+                        animator.SetBool("RotatingLeft", false);
                         animator.SetBool("RotatingRight", false);
                     }
-                }
-                else if (client.ClientInput.IsPressingRightKey)
-                {
-                    rotation = Vector3.up * 5f;
-                    if (!animator.GetBool("RotatingRight"))
-                    {
-                        animator.SetBool("RotatingRight", true);
-                        animator.SetBool("RotatingLeft", false);
-                    }
-                }
-                else
-                {
-                    animator.SetBool("RotatingLeft", false);
-                    animator.SetBool("RotatingRight", false);
-                }
 
-                client.Entity.GetComponent<CharacterController>().Move(movement + Physics.gravity);
-                client.Entity.transform.Rotate(rotation);
+                    client.Entity.GetComponent<CharacterController>().Move(movement + Physics.gravity);
+                    client.Entity.transform.Rotate(rotation);
+                }
             }
         }
 

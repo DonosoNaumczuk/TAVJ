@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using Networking;
 using UnityEngine;
 
@@ -10,6 +11,7 @@ namespace Client
         private readonly KeyCode _backwardsKey;
         private readonly KeyCode _leftKey;
         private readonly KeyCode _rightKey;
+        private readonly SortedDictionary<int, (bool, bool, bool, bool)> _inputs;
 
         private bool _isPressingForwardKey; 
         private bool _isPressingBackwardsKey; 
@@ -17,7 +19,6 @@ namespace Client
         private bool _isPressingRightKey;
         private int _lastInputAckId;
         private int _lastInputReadId;
-        private SortedDictionary<int, (bool, bool, bool, bool)> _inputs;
     
         public PlayerInput(KeyCode forwardKey, KeyCode backwardsKey, KeyCode leftKey, KeyCode rightKey)
         {
@@ -29,19 +30,22 @@ namespace Client
             _isPressingBackwardsKey = false;
             _isPressingLeftKey = false;
             _isPressingRightKey = false;
+            _lastInputReadId = -1;
+            _lastInputAckId = -1;
             _inputs = new SortedDictionary<int, (bool, bool, bool, bool)>();
         }
 
         public void Read()
         {
-            var isPressingForwardKey = Input.GetKey(_forwardKey);
-            var isPressingBackwardsKey = Input.GetKey(_backwardsKey);
-            var isPressingLeftKey = Input.GetKey(_leftKey);
-            var isPressingRightKey = Input.GetKey(_rightKey);
-            _isPressingForwardKey = isPressingForwardKey;
-            _isPressingBackwardsKey = isPressingBackwardsKey;
-            _isPressingLeftKey = isPressingLeftKey;
-            _isPressingRightKey = isPressingRightKey;
+            _isPressingForwardKey = Input.GetKey(_forwardKey);
+            _isPressingBackwardsKey = Input.GetKey(_backwardsKey);
+            _isPressingLeftKey = Input.GetKey(_leftKey);
+            _isPressingRightKey = Input.GetKey(_rightKey);
+            if (IsPressingSomething())
+            {
+                _inputs[++_lastInputReadId] = (_isPressingForwardKey, _isPressingBackwardsKey, _isPressingLeftKey,
+                    _isPressingRightKey);
+            }
         }
 
         public void SerializeIntoBuffer(BitBuffer buffer)
@@ -56,30 +60,28 @@ namespace Client
                 buffer.PutBit(input.Value.Item4);
             }
         }
-    
-        private void DeserializeFromBuffer(BitBuffer buffer)
+
+        public void ProcessInputAck(BitBuffer buffer)
         {
-            for (var inputsToProcess = buffer.GetInt(); inputsToProcess > 0; inputsToProcess--)
+            var ackInputId = buffer.GetInt();
+            if (ackInputId > _lastInputAckId)
             {
-                var id = buffer.GetInt();
-                var forward = buffer.GetBit();
-                var back = buffer.GetBit(); 
-                var light = buffer.GetBit();
-                var right = buffer.GetBit();
-                if (!_inputs.ContainsKey(id) && _lastInputReadId > 0)
+                _lastInputAckId = ackInputId;
+                foreach (var inputId in _inputs.Keys.Where(id => id < _lastInputAckId))
                 {
-                    _inputs[id] = (forward, back, light, right);
+                    _inputs.Remove(inputId);
                 }
             }
         }
 
-        public void ProcessInputAck(BitBuffer buffer)
+        private bool IsPressingSomething()
         {
-            var inputId = buffer.GetInt();
-            if (inputId > _lastInputAckId)
-            {
-                _lastInputAckId = inputId;
-            }
+            return _isPressingForwardKey || _isPressingBackwardsKey || _isPressingLeftKey || _isPressingRightKey;
+        }
+
+        public bool HasInputsToSend()
+        {
+            return _inputs.Count > 0;
         }
 
         public bool IsPressingForwardKey => _isPressingForwardKey;
