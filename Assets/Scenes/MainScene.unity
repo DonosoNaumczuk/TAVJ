@@ -338,7 +338,7 @@ MonoBehaviour:
   port: 9001
   serverPort: 9000
   serverIp: 127.0.0.1
-  entityPrefab: {fileID: 7406115796184491894, guid: d933e43b5fa6647d19c914b3d952d4e3,
+  playerPrefab: {fileID: 7406115796184491894, guid: d933e43b5fa6647d19c914b3d952d4e3,
     type: 3}
   forwardKey: 119
   backwardsKey: 115
@@ -951,7 +951,7 @@ PrefabInstance:
     - target: {fileID: 7015621310882791147, guid: 406361925eb618a49b3e29d64b5b734d,
         type: 3}
       propertyPath: m_LocalPosition.y
-      value: 2.75
+      value: 4.59
       objectReference: {fileID: 0}
     - target: {fileID: 7015621310882791147, guid: 406361925eb618a49b3e29d64b5b734d,
         type: 3}
@@ -1384,7 +1384,7 @@ MonoBehaviour:
   port: 9002
   serverPort: 9000
   serverIp: 127.0.0.1
-  entityPrefab: {fileID: 7406115796184491894, guid: d933e43b5fa6647d19c914b3d952d4e3,
+  playerPrefab: {fileID: 7406115796184491894, guid: d933e43b5fa6647d19c914b3d952d4e3,
     type: 3}
   forwardKey: 273
   backwardsKey: 274
@@ -2034,7 +2034,7 @@ PrefabInstance:
     - target: {fileID: 5035642871227140182, guid: a7566d85b04856b42a956c9b162ee747,
         type: 3}
       propertyPath: m_LocalPosition.y
-      value: 2.866
+      value: 4.59
       objectReference: {fileID: 0}
     - target: {fileID: 5035642871227140182, guid: a7566d85b04856b42a956c9b162ee747,
         type: 3}
@@ -2361,7 +2361,7 @@ MonoBehaviour:
   port: 9003
   serverPort: 9000
   serverIp: 127.0.0.1
-  entityPrefab: {fileID: 7406115796184491894, guid: d933e43b5fa6647d19c914b3d952d4e3,
+  playerPrefab: {fileID: 7406115796184491894, guid: d933e43b5fa6647d19c914b3d952d4e3,
     type: 3}
   forwardKey: 0
   backwardsKey: 0
@@ -2414,7 +2414,7 @@ MonoBehaviour:
   port: 9004
   serverPort: 9000
   serverIp: 127.0.0.1
-  entityPrefab: {fileID: 7406115796184491894, guid: d933e43b5fa6647d19c914b3d952d4e3,
+  playerPrefab: {fileID: 7406115796184491894, guid: d933e43b5fa6647d19c914b3d952d4e3,
     type: 3}
   forwardKey: 0
   backwardsKey: 0
@@ -2697,7 +2697,7 @@ MonoBehaviour:
   port: 9006
   serverPort: 9000
   serverIp: 127.0.0.1
-  entityPrefab: {fileID: 7406115796184491894, guid: d933e43b5fa6647d19c914b3d952d4e3,
+  playerPrefab: {fileID: 7406115796184491894, guid: d933e43b5fa6647d19c914b3d952d4e3,
     type: 3}
   forwardKey: 0
   backwardsKey: 0
@@ -3014,7 +3014,7 @@ PrefabInstance:
     - target: {fileID: 5035642871227140182, guid: a7566d85b04856b42a956c9b162ee747,
         type: 3}
       propertyPath: m_LocalPosition.y
-      value: 2.5
+      value: 4.2
       objectReference: {fileID: 0}
     - target: {fileID: 5035642871227140182, guid: a7566d85b04856b42a956c9b162ee747,
         type: 3}
@@ -3266,6 +3266,16 @@ PrefabInstance:
       propertyPath: m_IsActive
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 8824643221283930368, guid: 91e047326c7121248bcdf81ab6f4a6fa,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3559189830381545755, guid: 91e047326c7121248bcdf81ab6f4a6fa,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 91e047326c7121248bcdf81ab6f4a6fa, type: 3}
 --- !u!4 &1747876155 stripped
@@ -3306,7 +3316,7 @@ MonoBehaviour:
   port: 9007
   serverPort: 9000
   serverIp: 127.0.0.1
-  entityPrefab: {fileID: 7406115796184491894, guid: d933e43b5fa6647d19c914b3d952d4e3,
+  playerPrefab: {fileID: 7406115796184491894, guid: d933e43b5fa6647d19c914b3d952d4e3,
     type: 3}
   forwardKey: 0
   backwardsKey: 0
@@ -3534,7 +3544,7 @@ PrefabInstance:
     - target: {fileID: 7015621310882791147, guid: 406361925eb618a49b3e29d64b5b734d,
         type: 3}
       propertyPath: m_LocalPosition.y
-      value: 2.75
+      value: 4.47
       objectReference: {fileID: 0}
     - target: {fileID: 7015621310882791147, guid: 406361925eb618a49b3e29d64b5b734d,
         type: 3}
@@ -3624,7 +3634,7 @@ PrefabInstance:
     - target: {fileID: 7015621310882791147, guid: 406361925eb618a49b3e29d64b5b734d,
         type: 3}
       propertyPath: m_LocalPosition.y
-      value: -3.25
+      value: -1.76
       objectReference: {fileID: 0}
     - target: {fileID: 7015621310882791147, guid: 406361925eb618a49b3e29d64b5b734d,
         type: 3}
@@ -3789,7 +3799,7 @@ PrefabInstance:
     - target: {fileID: 5035642871227140182, guid: a7566d85b04856b42a956c9b162ee747,
         type: 3}
       propertyPath: m_LocalPosition.y
-      value: -3.5
+      value: -1.52
       objectReference: {fileID: 0}
     - target: {fileID: 5035642871227140182, guid: a7566d85b04856b42a956c9b162ee747,
         type: 3}
@@ -4161,7 +4171,7 @@ MonoBehaviour:
   port: 9005
   serverPort: 9000
   serverIp: 127.0.0.1
-  entityPrefab: {fileID: 7406115796184491894, guid: d933e43b5fa6647d19c914b3d952d4e3,
+  playerPrefab: {fileID: 7406115796184491894, guid: d933e43b5fa6647d19c914b3d952d4e3,
     type: 3}
   forwardKey: 0
   backwardsKey: 0

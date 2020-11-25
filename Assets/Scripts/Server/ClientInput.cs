@@ -35,7 +35,6 @@ namespace Server
                 Logger.Log("yellow", "Server: _lastProcessedInput = " + _lastProcessedInput 
                     + ", nextInput.Key = " + nextInput.Key, false);
                 _lastProcessedInput = nextInput.Key;
-                Logger.Log(_inputsToProcess.ToString());
                 _inputsToProcess.Remove(nextInput.Key);
                 return true;
             }
