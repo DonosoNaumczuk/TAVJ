@@ -4,6 +4,7 @@ using Commons.Game;
 using Commons.Networking;
 using Commons.Utils;
 using UnityEngine;
+using UnityEngine.UI;
 using Event = Commons.Networking.Event;
 using Logger = Commons.Utils.Logger;
 
@@ -45,7 +46,7 @@ namespace Client
             _snapshotBuffer = new Queue<Snapshot>();
             _currentSnapshot = null;
             _timeFromLastSnapshotInterpolation = 0f;
-            _playerInput = new PlayerInput(forwardKey, backwardsKey, leftKey, rightKey);
+            _playerInput = new PlayerInput(forwardKey, backwardsKey, leftKey, rightKey, shootKey);
             _isConnected = false;
             _lastInputUsedAsBaseForConciliation = -1;
         }
@@ -64,6 +65,12 @@ namespace Client
                 packet.Free();
                 packet = _channel.GetPacket();
             }
+
+            // if (_isConnected)
+            // {
+            //     Debug.DrawRay(_players[_id].GameObject.transform.position + Vector3.up * 1.5f,
+            //         _players[_id].GameObject.transform.forward * 100f, Color.red);
+            // }
         }
 
         private void FixedUpdate()
@@ -74,6 +81,18 @@ namespace Client
                 if (_playerInput.HasInputsToSend())
                 {
                     SendInputEvent();
+                }
+
+                _playerInput.AccumCooldown += Time.fixedDeltaTime;
+                if (_playerInput.Shooting)
+                {
+                    Shoot();
+                }
+
+                _playerInput.DiscardShootsByTimeout(Time.fixedDeltaTime);
+                if (_playerInput.HasShootsToSend())
+                {
+                    SendHits();
                 }
 
                 // if (_playerInput.CurrentInput.IsPressingSomething())
@@ -106,7 +125,7 @@ namespace Client
                         _playerInput.DiscardInputsAlreadyProcessedByServer(lastInputIdProcessedByServer);
                         if (_lastInputUsedAsBaseForConciliation < lastInputIdProcessedByServer)
                         {
-                            //Conciliate();
+                            //Conciliate(); //TODO: Fixme!!!
                         }
                     }
                 }
@@ -144,6 +163,9 @@ namespace Client
                 case Event.Snapshot:
                     HandleSnapshot(eventPacket);
                     break;
+                case Event.Hit:
+                    HandleHit(eventPacket);
+                    break;
             }
         }
 
@@ -151,19 +173,25 @@ namespace Client
         {
             var buffer = joinResponse.Buffer;
             _id = buffer.GetInt();
-            CreateNewPlayerFromBuffer(_id, mainPlayerPrefab, buffer);
+            CreateNewPlayerFromBuffer(_id, "MainPlayer", mainPlayerPrefab, buffer);
             _conciliationObject = Instantiate(conciliationPrefab, Vector3.zero, Quaternion.identity);
             _conciliationObject.name = "Conciliation_Object@Client_" + _id;
+            _conciliationObject.tag = "ConciliationObject";
             for (var playersToAdd = buffer.GetInt(); playersToAdd > 0; playersToAdd--)
             {
-                CreateNewPlayerFromBuffer(buffer.GetInt(), playerPrefab, buffer);
+                CreateNewPlayerFromBuffer(buffer.GetInt(), "Player", playerPrefab, buffer);
             }
             _isConnected = true;
         }
 
-        private void CreateNewPlayerFromBuffer(int id, GameObject prefab, BitBuffer buffer)
+        private void CreateNewPlayerFromBuffer(int id, string objectTag, GameObject prefab, BitBuffer buffer)
         {
             var playerGameObject = Instantiate(prefab, Vector3.zero, Quaternion.identity);
+            playerGameObject.tag = objectTag;
+            if (objectTag == "Player")
+            {
+                playerGameObject.GetComponent<Info>().Id = id;
+            }
             playerGameObject.name = "Player_" + id + "@Client_" + _id;
             var player = new Player(id, playerGameObject);
             player.DeserializeFromBuffer(buffer);
@@ -174,7 +202,7 @@ namespace Client
         {
             var buffer = joinBroadcast.Buffer;
             var joinedId = buffer.GetInt();
-            CreateNewPlayerFromBuffer(joinedId, playerPrefab, buffer);
+            CreateNewPlayerFromBuffer(joinedId, "Player", playerPrefab, buffer);
         }
 
         private void OnDestroy()
@@ -231,6 +259,17 @@ namespace Client
                    + ", R = " + Printer.Q4(player.transform.rotation), false, "cyan");
             }
             _players[_id].GameObject.GetComponent<CharacterController>().Move(Physics.gravity * Time.fixedDeltaTime);
+            foreach (var uiObject in FindObjectsOfType<Text>())
+            {
+                if (uiObject.CompareTag("LifeText"))
+                {
+                    uiObject.text = _players[_id].Health + "%";
+                }
+                else if (uiObject.CompareTag("ScoreText"))
+                {
+                    uiObject.text = "Score: " + _players[_id].Score;
+                }
+            }
         }
 
         private void Conciliate()
@@ -258,6 +297,46 @@ namespace Client
             _players[_id].GameObject.transform.position = _conciliationObject.transform.position;
             _players[_id].GameObject.transform.rotation = _conciliationObject.transform.rotation;
             _lastInputUsedAsBaseForConciliation = _currentSnapshot.GetLastInputIdProcessed(_id);
+        }
+
+        private void Shoot()
+        {
+            Logger.Log("C: Shooting!", false);
+            var origin = _players[_id].GameObject.transform.position + Vector3.up * 1.5f;
+            var forward = _players[_id].GameObject.transform.forward;
+            var hitted = Physics.Raycast(origin, forward, out var hit);
+            if (hitted && hit.collider.gameObject.CompareTag("Player"))
+            {
+                Logger.Log("C: Player hitted", false, "blue");
+                var shoot = new Shoot(_id, hit.collider.gameObject.GetComponent<Info>().Id);
+                _playerInput.AddShoot(shoot);
+            }
+        }
+
+        private void SendHits()
+        {
+            var packet = Packet.Obtain();
+            EventSerializer.SerializeIntoBuffer(packet.Buffer, Event.Hit);
+            var shoots = _playerInput.GetShootsNotProcessedByServer();
+            packet.Buffer.PutInt(_id);
+            packet.Buffer.PutInt(shoots.Count);
+            foreach (var shoot in shoots)
+            {
+                packet.Buffer.PutInt(shoot.Key);
+                packet.Buffer.PutInt(shoot.Value.Hitted);
+            }
+            packet.Buffer.Flush();
+            Logger.Log("C: Sending hits", false, "cyan");
+            _channel.Send(packet);
+            packet.Free();
+        }
+        
+        private void HandleHit(Packet hitPacket)
+        {
+            Logger.Log("C: Receiving hit response", false, "cyan");
+            var buffer = hitPacket.Buffer;
+            var lastShootIdProcessed = buffer.GetInt();
+            _players[_id].IncrementScore(_playerInput.DiscardShootsAlreadyProcessedByServer(lastShootIdProcessed));
         }
     }
 }

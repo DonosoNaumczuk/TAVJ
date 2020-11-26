@@ -6,7 +6,7 @@ namespace Commons.Game
 {
     public static class PlayerManager
     {
-        private const float RotationScaleFactor = 200f;
+        private const float RotationScaleFactor = 50f;
         private const float MovementScaleFactor = 8f;
         
         public static (Vector3, Vector3) ProcessInput(Input input, GameObject player, string entity, string color)

@@ -9,12 +9,14 @@ namespace Server
     {
         private Input _currentInput;
         private int _lastInputIdProcessed;
+        private int _lastShootProcessed;
         private readonly SortedDictionary<int, Input> _inputsToProcess;
 
         public ClientInput()
         {
             _currentInput = new Input();
             _lastInputIdProcessed = -1;
+            _lastShootProcessed = -1;
             _inputsToProcess = new SortedDictionary<int, Input>();
         }
 
@@ -44,10 +46,22 @@ namespace Server
             }
         }
 
+        public bool ShootWasAlreadyProcessed(int shootId)
+        {
+            return _lastShootProcessed >= shootId;
+        }
+
+        public void UpdateLastProcessedShoot(int shootId)
+        {
+            _lastShootProcessed = shootId;
+        }
+
         public Input CurrentInput => _currentInput;
 
         public int LastInputIdProcessed => _lastInputIdProcessed;
         
         public int CurrentInputId => _lastInputIdProcessed;
+
+        public int LastShootProcessed => _lastShootProcessed;
     }
 }

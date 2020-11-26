@@ -57,7 +57,6 @@ namespace Server
             {
                 _channel.Send(snapshotPacket, client.EndPoint);
             }
-
             snapshotPacket.Free();
         }
 
@@ -98,6 +97,9 @@ namespace Server
                     break;
                 case Event.Input:
                     HandleInputEvent(eventPacket);
+                    break;
+                case Event.Hit:
+                    HandleHitEvent(eventPacket);
                     break;
             }
         }
@@ -172,7 +174,37 @@ namespace Server
             {
                 _channel.Send(packet, client.EndPoint);
             }
+            packet.Free();
+        }
 
+        private void HandleHitEvent(Packet hitPacket)
+        {
+            Logger.Log("S: Receiving hits", false, "lime");
+            var buffer = hitPacket.Buffer;
+            var shooter = buffer.GetInt();
+            for (var shootsToProcess = buffer.GetInt(); shootsToProcess > 0; shootsToProcess--)
+            {
+                var shootId = buffer.GetInt();
+                var hitted = buffer.GetInt();
+                if (!_clients[shooter].ClientInput.ShootWasAlreadyProcessed(shootId))
+                {
+                    Logger.Log("Server: Client #" + shooter + " hitted Client #" + hitted + " in Shoot #" + shootId, false);
+                    _clients[hitted].DecreaseHealth();
+                    _clients[shooter].ClientInput.UpdateLastProcessedShoot(shootId);
+                }
+            }
+            SendHitResponsePacket(shooter);
+        }
+
+        private void SendHitResponsePacket(int shooter)
+        {
+            Logger.Log("S: Sending las processed = " + _clients[shooter].ClientInput.LastShootProcessed, false, "lime");
+            var packet = Packet.Obtain();
+            var buffer = packet.Buffer;
+            EventSerializer.SerializeIntoBuffer(buffer, Event.Hit);
+            buffer.PutInt(_clients[shooter].ClientInput.LastShootProcessed);
+            buffer.Flush();
+            _channel.Send(packet, _clients[shooter].EndPoint);
             packet.Free();
         }
     }

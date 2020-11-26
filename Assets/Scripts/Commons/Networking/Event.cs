@@ -12,7 +12,8 @@ namespace Commons.Networking
         Join,
         JoinBroadcast,
         Input,
-        Snapshot
+        Snapshot,
+        Hit
     }
 
     public static class EventSerializer

@@ -1,5 +1,6 @@
 using System.Net;
 using Commons.Networking;
+using Commons.Utils;
 using UnityEngine;
 
 namespace Server
@@ -11,12 +12,15 @@ namespace Server
         private readonly GameObject _entity;
         private readonly ClientInput _clientInput;
 
+        private int _health;
+
         public ClientInfo(int id, IPEndPoint endPoint, GameObject entity)
         {
             _id = id;
             _endPoint = endPoint;
             _entity = entity;
             _clientInput = new ClientInput();
+            _health = 100;
         }
 
         public int Id => _id;
@@ -31,6 +35,7 @@ namespace Server
         {
             buffer.PutInt(_id);
             buffer.PutInt(_clientInput.LastInputIdProcessed);
+            buffer.PutInt(_health);
             var transform = _entity.transform;
             var position = transform.position;
             buffer.PutFloat(position.x);
@@ -41,6 +46,16 @@ namespace Server
             buffer.PutFloat(rotation.y);
             buffer.PutFloat(rotation.z);
             buffer.PutFloat(rotation.w);
+        }
+
+        public void DecreaseHealth()
+        {
+            _health -= 20;
+        }
+
+        public bool IsAlive()
+        {
+            return _health > 0;
         }
     }
 }
