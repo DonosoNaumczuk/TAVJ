@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using Commons.Game;
@@ -34,6 +35,7 @@ namespace Client
         private float _timeFromLastSnapshotInterpolation;
         private PlayerInput _playerInput;
         private int _lastInputUsedAsBaseForConciliation;
+        private float _latencySeconds;
 
         private const int SnapshotsPerSecond = Constants.PacketsPerSecond;
         private const float SecondsToReceiveNextSnapshot = 1f / SnapshotsPerSecond;
@@ -55,6 +57,7 @@ namespace Client
             _playerInput = new PlayerInput(forwardKey, backwardsKey, leftKey, rightKey, shootKey);
             _isConnected = false;
             _lastInputUsedAsBaseForConciliation = -1;
+            _latencySeconds = 0;
         }
 
         void Start()
@@ -83,6 +86,8 @@ namespace Client
         {
             if (_isConnected)
             {
+                ReadLatencySelection();
+                
                 _playerInput.Read();
                 if (_playerInput.HasInputsToSend())
                 {
@@ -138,11 +143,32 @@ namespace Client
             }
         }
 
+        private void ReadLatencySelection()
+        {
+            if (UnityEngine.Input.GetKey(KeyCode.Alpha0))
+            {
+                _latencySeconds = 0f;
+            }
+            else if (UnityEngine.Input.GetKey(KeyCode.Alpha1))
+            {
+                _latencySeconds = 0.2f;
+            }
+            else if (UnityEngine.Input.GetKey(KeyCode.Alpha2))
+            {
+                _latencySeconds = 0.4f;
+            } else if (UnityEngine.Input.GetKey(KeyCode.Alpha3))
+            {
+                _latencySeconds = 0.8f;
+            } else if (UnityEngine.Input.GetKey(KeyCode.Alpha4))
+            {
+                _latencySeconds = 1.2f;
+            }
+        }
+
         private void SendInputEvent()
         {
             var packet = GenerateInputPacket();
-            _channel.Send(packet);
-            packet.Free();
+            StartCoroutine(SendPacketAddingLatency(packet));
         }
 
         private Packet GenerateInputPacket()
@@ -337,8 +363,7 @@ namespace Client
             }
             packet.Buffer.Flush();
             Logger.Log("C: Sending hits", false, "cyan");
-            _channel.Send(packet);
-            packet.Free();
+            StartCoroutine(SendPacketAddingLatency(packet));
         }
         
         private void HandleHit(Packet hitPacket)
@@ -347,6 +372,13 @@ namespace Client
             var buffer = hitPacket.Buffer;
             var lastShootIdProcessed = buffer.GetInt();
             _players[_id].IncrementScore(_playerInput.DiscardShootsAlreadyProcessedByServer(lastShootIdProcessed));
+        }
+        
+        private IEnumerator SendPacketAddingLatency(Packet packet)
+        {
+            yield return new WaitForSeconds(_latencySeconds);
+            _channel.Send(packet);
+            packet.Free();
         }
     }
 }
