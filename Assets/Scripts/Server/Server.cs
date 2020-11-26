@@ -23,6 +23,8 @@ namespace Server
 
         private void Awake()
         {
+            port = PlayerPrefs.GetInt(Menu.SceneManager.ServerPortKey);
+            PlayerPrefs.DeleteKey(Menu.SceneManager.ServerPortKey);
             _channel = new Channel(port);
             _clients = new List<ClientInfo>();
             _secondsSinceLastSnapshotSent = 0f;

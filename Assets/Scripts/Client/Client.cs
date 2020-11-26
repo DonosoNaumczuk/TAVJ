@@ -41,6 +41,12 @@ namespace Client
 
         private void Awake()
         {
+            port = PlayerPrefs.GetInt(Menu.SceneManager.ClientPortKey);
+            serverIp = PlayerPrefs.GetString(Menu.SceneManager.ServerIpKey);
+            serverPort = PlayerPrefs.GetInt(Menu.SceneManager.ServerPortKey);
+            PlayerPrefs.DeleteKey(Menu.SceneManager.ClientPortKey);
+            PlayerPrefs.DeleteKey(Menu.SceneManager.ServerIpKey);
+            PlayerPrefs.DeleteKey(Menu.SceneManager.ServerPortKey);
             _channel = new Channel(serverIp, port, serverPort);
             _players = new Dictionary<int, Player>();
             _snapshotBuffer = new Queue<Snapshot>();
