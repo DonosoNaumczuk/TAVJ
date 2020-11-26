@@ -51,7 +51,11 @@ namespace Client
     
         public Transform LastSnapshotTransform => _lastSnapshotTransform;
 
-        public int Health => _health;
+        public int Health
+        {
+            get => _health;
+            set => _health = value;
+        }
 
         public int Score => _score;
     }

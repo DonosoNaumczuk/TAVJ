@@ -247,6 +247,10 @@ namespace Client
                 player.GameObject.transform.rotation = Quaternion.Lerp(player.LastSnapshotTransform.rotation,
                     _currentSnapshot.GetRotation(id), time);
             }
+            if (_currentSnapshot.Contains(_id))
+            {
+                _players[_id].Health = _currentSnapshot.GetHealth(_id);
+            }
         }
 
         private void HandleInputThroughPrediction()

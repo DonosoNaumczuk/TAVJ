@@ -7,18 +7,19 @@ namespace Client
 {
     public class Snapshot
     {
-        private readonly Dictionary<int, (int, Vector3, Quaternion)> _transforms;
+        private readonly Dictionary<int, (int, int, Vector3, Quaternion)> _transforms;
 
         public Snapshot(BitBuffer buffer)
         {
-            _transforms = new Dictionary<int, (int, Vector3, Quaternion)>();
+            _transforms = new Dictionary<int, (int, int, Vector3, Quaternion)>();
             for (var clientsToProcess = buffer.GetInt(); clientsToProcess > 0; clientsToProcess--)
             {
                 var id = buffer.GetInt();
                 var lastInputProcessed = buffer.GetInt();
+                var health = buffer.GetInt();
                 var position = new Vector3(buffer.GetFloat(), buffer.GetFloat(), buffer.GetFloat());
                 var rotation = new Quaternion(buffer.GetFloat(), buffer.GetFloat(), buffer.GetFloat(), buffer.GetFloat());
-                _transforms[id] = (lastInputProcessed, position, rotation);
+                _transforms[id] = (lastInputProcessed, health, position, rotation);
             }
         }
 
@@ -33,15 +34,20 @@ namespace Client
         {
             return _transforms[id].Item1;
         }
+        
+        public int GetHealth(int id)
+        {
+            return _transforms[id].Item2;
+        }
 
         public Vector3 GetPosition(int id)
         {
-            return _transforms[id].Item2;
+            return _transforms[id].Item3;
         }
         
         public Quaternion GetRotation(int id)
         {
-            return _transforms[id].Item3;
+            return _transforms[id].Item4;
         }
     }
 }
